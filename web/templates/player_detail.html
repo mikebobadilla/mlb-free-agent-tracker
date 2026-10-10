@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Player.Name}} | MLB Free Agent Tracker</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav>
+        <a href="/" class="brand">MLB Free Agent Tracker</a>
+    </nav>
+    <main>
+        <a href="/" class="back">&larr; Back to Dashboard</a>
+
+        <h1>{{.Player.Name}}</h1>
+        <p class="meta">{{.Player.Position}} | Age {{.Player.Age}} | Previously {{.Player.PrevTeam}}</p>
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <span class="stat-label">WAR</span>
+                <span class="stat-value">{{if gt .Player.WAR 0.0}}{{printf "%.1f" .Player.WAR}}{{else}}-{{end}}</span>
+            </div>
+            {{if .Player.ERA}}
+            <div class="stat-box">
+                <span class="stat-label">ERA</span>
+                <span class="stat-value">{{printf "%.2f" .Player.ERA}}</span>
+            </div>
+            {{end}}
+        </div>
+
+        <h2>Status</h2>
+        {{if .Contract}}
+        <div class="contract-card">
+            <p><strong>Signed with:</strong> {{.Contract.Team}}</p>
+            <p><strong>Years:</strong> {{.Contract.Years}}</p>
+            <p><strong>Total Value:</strong> ${{.Contract.TotalValue}}M</p>
+            <p><strong>AAV:</strong> ${{.Contract.AAV}}M</p>
+            <p><strong>Signed:</strong> {{.Contract.SignedDate}}</p>
+        </div>
+        {{else}}
+        <p>Status: <span class="badge {{.Player.Status}}">{{.Player.Status}}</span></p>
+        {{end}}
+
+        <h2>Prediction</h2>
+        {{if .Prediction}}
+        <div class="prediction-card">
+            <p><strong>Predicted Team:</strong> {{.Prediction.PredictedTeam}}</p>
+            <p><strong>Predicted Deal:</strong> {{.Prediction.PredictedYears}} yr / ${{.Prediction.PredictedAAV}}M AAV</p>
+            <p><strong>Confidence:</strong> {{.Prediction.Confidence}}/5</p>
+            {{if .Prediction.Notes}}<p>{{.Prediction.Notes}}</p>{{end}}
+        </div>
+        {{else}}
+        <p>No prediction yet.</p>
+        {{end}}
+
+        <h2>Rumors</h2>
+        {{if .Rumors}}
+        <ul class="rumor-list">
+            {{range .Rumors}}
+            <li>
+                <strong>{{.LinkedTeam}}</strong>
+                <span class="confidence">{{repeat "★" .Confidence}}</span>
+                <small>{{.Source}} &mdash; {{.DatePosted}}</small>
+            </li>
+            {{end}}
+        </ul>
+        {{else}}
+        <p>No rumors tracked yet.</p>
+        {{end}}
+    </main>
+</body>
+</html>
