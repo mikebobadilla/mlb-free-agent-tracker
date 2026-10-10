@@ -1,0 +1,33 @@
+players:
+  - name: Juan Soto
+    position: OF
+    mlb_id: 665742
+    prev_team: Yankees
+  - name: Corbin Burnes
+    position: SP
+    mlb_id: 669203
+    prev_team: Orioles
+  - name: Alex Bregman
+    position: 3B
+    mlb_id: 608324
+    prev_team: Astros
+  - name: Willy Adames
+    position: SS
+    mlb_id: 666182
+    prev_team: Brewers
+  - name: Pete Alonso
+    position: 1B
+    mlb_id: 624413
+    prev_team: Mets
+  - name: Blake Snell
+    position: SP
+    mlb_id: 605483
+    prev_team: Padres
+  - name: Max Fried
+    position: SP
+    mlb_id: 608337
+    prev_team: Braves
+  - name: Teoscar Hernandez
+    position: OF
+    mlb_id: 606192
+    prev_team: Dodgers

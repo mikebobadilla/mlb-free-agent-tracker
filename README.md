@@ -2,6 +2,8 @@
 
 A Go + SQLite web app for tracking MLB free agents throughout the offseason.
 
+> **LLM Test Project**: This project is being developed as a test bed for the LongCat 2.5 model (model ID: `longcat-2.5-preview-free`, provider: `opencode`). The entire codebase — from initial scaffolding to templates to documentation — is being generated and iterated on by an LLM agent. This is very much an experiment in AI-assisted development, so expect rough edges, mistakes, and things that would normally be done differently in a human-led project.
+
 ## Quick Start
 
 ```bash
@@ -73,4 +75,3 @@ make build
 
 Deploy to any host that supports Go binaries (Fly.io, Railway, a VPS, etc.).
 The only file you need besides the binary is `config/players.yaml`.
-# mlb-free-agent-tracker
