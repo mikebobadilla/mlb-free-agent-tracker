@@ -11,11 +11,11 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | ID | Card | Status | Branch | Decisions |
 |----|------|--------|--------|-----------|
 | P1-001 | Fix ERA parsing bug | IN REVIEW | `feature/phase1-stats-pipeline` | D-003 |
-| P1-002 | Last-season stats fallback | IN PROGRESS | `feature/phase1-stats-pipeline` | D-004, D-005, D-010 |
-| P1-003 | More stats (OPS, WHIP, IP, FIP, K/9) | READY | `feature/phase1-stats-pipeline` | D-009, D-010 |
-| P1-004 | Sync player age | IN PROGRESS | `feature/phase1-stats-pipeline` | D-006 |
+| P1-002 | Last-season stats fallback | IN REVIEW | `feature/phase1-stats-pipeline` | D-004, D-005, D-010, D-012 |
+| P1-003 | More stats (OPS, WHIP, IP, FIP, K/9) | IN REVIEW | `feature/phase1-stats-pipeline` | D-009, D-010, D-013, D-014 |
+| P1-004 | Sync player age | IN REVIEW | `feature/phase1-stats-pipeline` | D-006 |
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
-| P1-006 | Server startup wipes synced data | READY | `feature/phase1-stats-pipeline` | D-011 |
+| P1-006 | Server startup wipes synced data | IN REVIEW | `feature/phase1-stats-pipeline` | D-011 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -68,42 +68,42 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Decisions:** D-003
 - **Files:** `internal/jobs/stats_sync.go`, `internal/jobs/stats_sync_test.go`
 
-### [IN PROGRESS] Add last-season stats fallback
+### [IN REVIEW] Add last-season stats fallback
 - **ID:** P1-002
 - **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
 - **Problem:** The sync stored career stats; season stats are what matter for free agency, and the current season is empty during the offseason
 - **Impact:** Dashboard looks empty/broken during the offseason when tracking matters most
 - **Approach:** Fetch the current season; if the API returns no splits, fetch the previous season. Use the season-total split for traded players. Store the season in a new `season` column and show it in the UI.
 - **Acceptance criteria:**
-  - [ ] Players with no current-season data show the previous season's stats
-  - [ ] The dashboard and player page show which season the stats are from
-  - [ ] Traded players show season totals, not one team's split
-  - [ ] Existing databases get the `season` column without being deleted
-  - [ ] Tests cover current season, fallback, no data in either season, traded player
-- **Decisions:** D-004, D-005, D-010
+  - [x] Players with no current-season data show the previous season's stats (fake-API test; can't trigger live until the 2027 season starts)
+  - [x] The dashboard and player page show which season the stats are from
+  - [x] Traded players show season totals, not one team's split
+  - [x] Existing databases get the `season` column without being deleted
+  - [x] Tests cover current season, fallback, no data in either season, traded player
+- **Decisions:** D-004, D-005, D-010, D-012
 - **Files:** `internal/jobs/stats_sync.go`, `internal/db/`, `internal/models/models.go`, `internal/store/store.go`, `web/templates/`
 
-### [READY] Add more stats (OPS, WHIP, IP, FIP, K/9)
+### [IN REVIEW] Add more stats (OPS, WHIP, IP, FIP, K/9)
 - **ID:** P1-003
 - **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
 - **Problem:** Only WAR and ERA are tracked — not enough for meaningful analysis
 - **Impact:** Can't compare players properly on the dashboard
 - **Approach:** Hitting: OBP, SLG, OPS from the MLB API. Pitching: WHIP, IP, K/9 from the MLB API; FIP computed from HR, BB, HBP, K, IP. WAR and wRC+ are split out to P1-005.
 - **Acceptance criteria:**
-  - [ ] Hitters show OBP / SLG / OPS; pitchers show ERA / WHIP / IP / K/9 / FIP
-  - [ ] Undefined stats show `-`, not `0`
-  - [ ] FIP computation has unit tests
-- **Decisions:** D-009, D-010
+  - [x] Hitters show OBP / SLG / OPS; pitchers show ERA / WHIP / IP / K/9 / FIP
+  - [x] Undefined stats show `-`, not `0`
+  - [x] FIP computation has unit tests
+- **Decisions:** D-009, D-010, D-013, D-014
 - **Files:** `internal/jobs/stats_sync.go`, `internal/db/schema.sql`, `internal/models/models.go`, `internal/store/store.go`, `web/templates/`
 
-### [IN PROGRESS] Sync player age
+### [IN REVIEW] Sync player age
 - **ID:** P1-004
 - **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
 - **Problem:** Age was read from the stats response, which doesn't include it — always 0
 - **Approach:** Fetch `currentAge` from `/people/{id}`
 - **Acceptance criteria:**
-  - [ ] All tracked players show a non-zero age after sync
-  - [ ] Unit test against a fake API server
+  - [x] All tracked players show a non-zero age after sync
+  - [x] Unit test against a fake API server
 - **Decisions:** D-006
 - **Files:** `internal/jobs/stats_sync.go`
 
@@ -119,16 +119,17 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Decisions:** D-007, D-009
 - **Files:** TBD
 
-### [READY] Server startup wipes synced data
+### [IN REVIEW] Server startup wipes synced data
 - **ID:** P1-006
 - **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
 - **Problem:** `cmd/server/main.go` upserts YAML players through `UpsertPlayer`, resetting age, stats and status on every restart
 - **Impact:** A player marked signed flips back to unsigned whenever the server restarts
 - **Approach:** Separate store function that inserts new players and updates only config fields (name, position, prev_team)
 - **Acceptance criteria:**
-  - [ ] Restarting the server keeps age, stats and status
-  - [ ] New players added to the YAML still appear before the first sync
-  - [ ] Store test against an in-memory SQLite DB
+  - [x] Restarting the server keeps age, stats and status
+  - [x] New players added to the YAML still appear before the first sync
+  - [x] Store test against a temporary SQLite DB
+  - [x] Blank statuses written by older versions are repaired to `unsigned`
 - **Decisions:** D-011
 - **Files:** `cmd/server/main.go`, `internal/store/store.go`
 

@@ -119,6 +119,33 @@ it belongs here.
 - **Status:** ACCEPTED
 - **Cards:** P1-006
 - **Context:** On startup the server upserts every player from `players.yaml` through the same `UpsertPlayer` the sync uses, so age, stats and **status** are reset to blank on every restart — a signed player would flip back to unsigned.
-- **Decision:** Add a separate store function for config fields (name, position, prev_team) that inserts new players but never touches synced fields or status on existing rows.
+- **Decision:** Add a separate store function for config fields (name, position, prev_team) that inserts new players but never touches synced fields or status on existing rows. Found while building: the stats sync's `UpsertPlayer` *also* overwrote status with the blank YAML value, so the sync no longer writes status at all — status changes only through `UpdatePlayerStatus`. The migration repairs blank statuses to `unsigned`.
 - **Alternatives:** Remove the startup upsert entirely — but then new YAML players wouldn't appear until the first sync completes.
 - **Consequences:** None expected.
+
+## D-012 — Embed the schema and add columns with ALTER TABLE
+- **Date:** 2026-10-11
+- **Status:** ACCEPTED
+- **Cards:** P1-002, P1-003
+- **Context:** `schema.sql` uses `CREATE TABLE IF NOT EXISTS`, so new columns never reached existing databases. It was also read from disk with a relative path, which breaks the single-binary deploy and tests.
+- **Decision:** Embed `schema.sql` with `go:embed`. New `players` columns go in both `schema.sql` (fresh DBs) and an `addedColumns` list in `internal/db/db.go`; `Migrate` adds any that are missing. Safe to run on every start.
+- **Alternatives:** A migration tool (golang-migrate, goose) — more than we need for additive columns, and AGENTS.md asks for minimal dependencies. Telling users to `make clean` — loses contracts/rumors/predictions.
+- **Consequences:** Only additive changes are supported. Renames, type changes or data moves will need a real versioned migration — revisit then.
+
+## D-013 — Store innings pitched as given; compute FIP from outs
+- **Date:** 2026-10-11
+- **Status:** ACCEPTED
+- **Cards:** P1-003
+- **Context:** Verified against the live API: `inningsPitched` is in baseball notation (`"42.2"` = 42⅔ innings), so it can't be used in math.
+- **Decision:** Store `ip` exactly as the API gives it, for display. Compute FIP from the `outs` field (`outs / 3` = true innings).
+- **Alternatives:** Convert to true innings on sync and back for display — two conversions for no benefit.
+- **Consequences:** Anyone doing math on `ip` must use outs instead (noted in AGENTS.md Known Issues).
+
+## D-014 — Nullable stats render through template funcs, never `printf`
+- **Date:** 2026-10-11
+- **Status:** ACCEPTED
+- **Cards:** P1-002, P1-003
+- **Context:** Verified: the old dashboard rendered ERA as `%!f(*float64=0x...)`, because `printf` in a template doesn't dereference a `*float64`.
+- **Decision:** Template funcs in `cmd/server/main.go`: `stat "<format>" <ptr>` (e.g. ERA `3.20`) and `avg <ptr>` (rate stats without the leading zero, `.908`). Both render `-` when the value is nil. Render tests in `cmd/server/main_test.go` fail if a pointer or format error appears in the output.
+- **Alternatives:** Store stats as plain `float64` and use `0` for "no data" — rejected by D-010.
+- **Consequences:** New stat columns must use these funcs in templates.
