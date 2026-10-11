@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"mlb-tracker/internal/db"
@@ -21,6 +22,15 @@ var funcMap = template.FuncMap{
 	"repeat": func(s string, count int) string {
 		return strings.Repeat(s, count)
 	},
+	"stat": formatStat,
+}
+
+// formatStat formats a nullable stat, or returns "-" when it isn't set.
+func formatStat(format string, v *float64) string {
+	if v == nil {
+		return "-"
+	}
+	return fmt.Sprintf(format, *v)
 }
 
 type Config struct {

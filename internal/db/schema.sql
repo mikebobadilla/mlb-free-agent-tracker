@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS players (
     prev_team TEXT,
     war REAL,
     era REAL,
+    season INTEGER,
     status TEXT DEFAULT 'unsigned',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

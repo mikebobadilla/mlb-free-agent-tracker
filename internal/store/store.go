@@ -15,8 +15,8 @@ func New(db *sql.DB) *Store {
 
 func (s *Store) UpsertPlayer(p *models.Player) error {
 	_, err := s.db.Exec(`
-		INSERT INTO players (mlb_id, name, position, age, prev_team, war, era, status, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+		INSERT INTO players (mlb_id, name, position, age, prev_team, war, era, season, status, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
 		ON CONFLICT(mlb_id) DO UPDATE SET
 			name = excluded.name,
 			position = excluded.position,
@@ -24,17 +24,50 @@ func (s *Store) UpsertPlayer(p *models.Player) error {
 			prev_team = excluded.prev_team,
 			war = excluded.war,
 			era = excluded.era,
+			season = excluded.season,
 			status = excluded.status,
 			updated_at = excluded.updated_at
-	`, p.MLBID, p.Name, p.Position, p.Age, p.PrevTeam, p.WAR, p.ERA, p.Status)
+	`, p.MLBID, p.Name, p.Position, p.Age, p.PrevTeam, p.WAR, p.ERA, nullIfZero(p.Season), p.Status)
 	return err
 }
 
+// playerColumns and scanPlayer must stay in the same order.
+const playerColumns = `id, mlb_id, name, position, age, prev_team, war, era, season, status, updated_at`
+
+type scanner interface {
+	Scan(dest ...any) error
+}
+
+func scanPlayer(row scanner) (*models.Player, error) {
+	var p models.Player
+	var age, season sql.NullInt64
+	var war, era sql.NullFloat64
+	var prevTeam, status sql.NullString
+	if err := row.Scan(&p.ID, &p.MLBID, &p.Name, &p.Position, &age, &prevTeam, &war, &era, &season, &status, &p.UpdatedAt); err != nil {
+		return nil, err
+	}
+	p.Age = int(age.Int64)
+	p.PrevTeam = prevTeam.String
+	p.WAR = war.Float64
+	p.ERA = floatPtr(era)
+	p.Season = int(season.Int64)
+	p.Status = status.String
+	return &p, nil
+}
+
+func floatPtr(f sql.NullFloat64) *float64 {
+	if !f.Valid {
+		return nil
+	}
+	return &f.Float64
+}
+
+func nullIfZero(n int) sql.NullInt64 {
+	return sql.NullInt64{Int64: int64(n), Valid: n != 0}
+}
+
 func (s *Store) GetAllPlayers() ([]models.Player, error) {
-	rows, err := s.db.Query(`
-		SELECT id, mlb_id, name, position, age, prev_team, war, era, status, updated_at
-		FROM players ORDER BY name
-	`)
+	rows, err := s.db.Query(`SELECT ` + playerColumns + ` FROM players ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
@@ -42,49 +75,21 @@ func (s *Store) GetAllPlayers() ([]models.Player, error) {
 
 	var players []models.Player
 	for rows.Next() {
-		var p models.Player
-		var era sql.NullFloat64
-		if err := rows.Scan(&p.ID, &p.MLBID, &p.Name, &p.Position, &p.Age, &p.PrevTeam, &p.WAR, &era, &p.Status, &p.UpdatedAt); err != nil {
+		p, err := scanPlayer(rows)
+		if err != nil {
 			return nil, err
 		}
-		if era.Valid {
-			p.ERA = &era.Float64
-		}
-		players = append(players, p)
+		players = append(players, *p)
 	}
-	return players, nil
+	return players, rows.Err()
 }
 
 func (s *Store) GetPlayerByID(id int64) (*models.Player, error) {
-	var p models.Player
-	var era sql.NullFloat64
-	err := s.db.QueryRow(`
-		SELECT id, mlb_id, name, position, age, prev_team, war, era, status, updated_at
-		FROM players WHERE id = ?
-	`, id).Scan(&p.ID, &p.MLBID, &p.Name, &p.Position, &p.Age, &p.PrevTeam, &p.WAR, &era, &p.Status, &p.UpdatedAt)
-	if err != nil {
-		return nil, err
-	}
-	if era.Valid {
-		p.ERA = &era.Float64
-	}
-	return &p, nil
+	return scanPlayer(s.db.QueryRow(`SELECT `+playerColumns+` FROM players WHERE id = ?`, id))
 }
 
 func (s *Store) GetPlayerByMLBID(mlbID int64) (*models.Player, error) {
-	var p models.Player
-	var era sql.NullFloat64
-	err := s.db.QueryRow(`
-		SELECT id, mlb_id, name, position, age, prev_team, war, era, status, updated_at
-		FROM players WHERE mlb_id = ?
-	`, mlbID).Scan(&p.ID, &p.MLBID, &p.Name, &p.Position, &p.Age, &p.PrevTeam, &p.WAR, &era, &p.Status, &p.UpdatedAt)
-	if err != nil {
-		return nil, err
-	}
-	if era.Valid {
-		p.ERA = &era.Float64
-	}
-	return &p, nil
+	return scanPlayer(s.db.QueryRow(`SELECT `+playerColumns+` FROM players WHERE mlb_id = ?`, mlbID))
 }
 
 func (s *Store) GetContractsForPlayer(playerID int64) ([]models.Contract, error) {
