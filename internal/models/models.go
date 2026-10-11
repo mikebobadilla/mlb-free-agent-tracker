@@ -12,6 +12,7 @@ type Player struct {
 	// Synced fields
 	Age       int       `yaml:"-"`
 	Status    string    `yaml:"-"` // unsigned | negotiating | signed
+	Season    int       `yaml:"-"` // season the stats are from; 0 if none
 	WAR       float64   `yaml:"-"`
 	ERA       *float64  `yaml:"-"`
 	UpdatedAt time.Time `yaml:"-"`

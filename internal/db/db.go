@@ -2,10 +2,22 @@ package db
 
 import (
 	"database/sql"
-	_ "modernc.org/sqlite"
+	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
+
+	_ "modernc.org/sqlite"
 )
+
+//go:embed schema.sql
+var schema string
+
+// addedColumns are players columns added after the original schema. New
+// databases get them from schema.sql; Migrate adds them to older databases.
+var addedColumns = []struct{ name, sqlType string }{
+	{"season", "INTEGER"},
+}
 
 func Open(dbPath string) (*sql.DB, error) {
 	dir := filepath.Dir(dbPath)
@@ -26,10 +38,39 @@ func Open(dbPath string) (*sql.DB, error) {
 }
 
 func Migrate(db *sql.DB) error {
-	schema, err := os.ReadFile("internal/db/schema.sql")
+	if _, err := db.Exec(schema); err != nil {
+		return err
+	}
+
+	existing, err := playerColumns(db)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(string(schema))
-	return err
+	for _, col := range addedColumns {
+		if existing[col.name] {
+			continue
+		}
+		if _, err := db.Exec(fmt.Sprintf("ALTER TABLE players ADD COLUMN %s %s", col.name, col.sqlType)); err != nil {
+			return fmt.Errorf("adding column %s: %w", col.name, err)
+		}
+	}
+	return nil
+}
+
+func playerColumns(db *sql.DB) (map[string]bool, error) {
+	rows, err := db.Query("SELECT name FROM pragma_table_info('players')")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cols := map[string]bool{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		cols[name] = true
+	}
+	return cols, rows.Err()
 }
