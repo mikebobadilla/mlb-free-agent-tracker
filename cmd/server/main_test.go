@@ -24,6 +24,52 @@ func TestFormatStat(t *testing.T) {
 	}
 }
 
+func TestFormatAvg(t *testing.T) {
+	ops, big := .908, 1.036
+	if got := formatAvg(&ops); got != ".908" {
+		t.Errorf("formatAvg(.908) = %q", got)
+	}
+	if got := formatAvg(&big); got != "1.036" {
+		t.Errorf("formatAvg(1.036) = %q", got)
+	}
+	if got := formatAvg(nil); got != "-" {
+		t.Errorf("formatAvg(nil) = %q", got)
+	}
+}
+
+func TestPlayerDetailHitterVsPitcher(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	render := func(p *models.Player) string {
+		data := struct {
+			Player     *models.Player
+			Contract   *models.Contract
+			Rumors     []models.Rumor
+			Prediction *models.Prediction
+		}{Player: p}
+		var out strings.Builder
+		if err := parseTemplates(t).ExecuteTemplate(&out, "player_detail.html", data); err != nil {
+			t.Fatal(err)
+		}
+		return out.String()
+	}
+
+	hitter := render(&models.Player{Name: "Juan Soto", Season: 2026, OBP: f(.393), SLG: f(.515), OPS: f(.908)})
+	if !strings.Contains(hitter, ".908") || strings.Contains(hitter, "Pitching") {
+		t.Error("hitter page should show OPS and no pitching section")
+	}
+
+	pitcher := render(&models.Player{Name: "Blake Snell", Season: 2026,
+		ERA: f(1.9), WHIP: f(1.1), IP: f(42.2), K9: f(11.6), FIP: f(1.717)})
+	for _, want := range []string{"1.90", "42.2", "11.60", "1.72"} {
+		if !strings.Contains(pitcher, want) {
+			t.Errorf("pitcher page missing %q", want)
+		}
+	}
+	if strings.Contains(pitcher, "Hitting") {
+		t.Error("pitcher page should have no hitting section")
+	}
+}
+
 func TestDashboardRenders(t *testing.T) {
 	era := 3.2
 	data := []models.PlayerDashboard{

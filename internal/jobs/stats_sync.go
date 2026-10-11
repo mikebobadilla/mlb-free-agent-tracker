@@ -13,6 +13,10 @@ import (
 )
 
 const (
+	// fipConstant puts FIP on the ERA scale. The true constant varies by
+	// season (~3.0-3.2); a fixed value is close enough for comparing players.
+	fipConstant = 3.10
+
 	requestDelay = 200 * time.Millisecond
 	syncInterval = 6 * time.Hour
 )
@@ -81,8 +85,23 @@ type MLBStatsResponse struct {
 			} `json:"team"`
 			Stat struct {
 				WAR         FlexFloat `json:"war"`
-				ERA         FlexFloat `json:"era"`
 				GamesPlayed int       `json:"gamesPlayed"`
+
+				// Hitting
+				OBP FlexFloat `json:"obp"`
+				SLG FlexFloat `json:"slg"`
+				OPS FlexFloat `json:"ops"`
+
+				// Pitching
+				ERA         FlexFloat `json:"era"`
+				WHIP        FlexFloat `json:"whip"`
+				IP          FlexFloat `json:"inningsPitched"` // baseball notation: 42.2 = 42 2/3
+				K9          FlexFloat `json:"strikeoutsPer9Inn"`
+				Outs        int       `json:"outs"`
+				HomeRuns    int       `json:"homeRuns"`
+				BaseOnBalls int       `json:"baseOnBalls"`
+				HitByPitch  int       `json:"hitByPitch"`
+				StrikeOuts  int       `json:"strikeOuts"`
 			} `json:"stat"`
 		} `json:"splits"`
 	} `json:"stats"`
@@ -100,7 +119,10 @@ type MLBPeopleResponse struct {
 type seasonStats struct {
 	Season int
 	WAR    float64
-	ERA    *float64
+
+	OBP, SLG, OPS *float64
+
+	ERA, WHIP, IP, K9, FIP *float64
 }
 
 func RunStatsSync(s *store.Store, players []models.Player) error {
@@ -128,7 +150,8 @@ func RunStatsSync(s *store.Store, players []models.Player) error {
 		p.Age = age
 		p.Season = stats.Season
 		p.WAR = stats.WAR
-		p.ERA = stats.ERA
+		p.OBP, p.SLG, p.OPS = stats.OBP, stats.SLG, stats.OPS
+		p.ERA, p.WHIP, p.IP, p.K9, p.FIP = stats.ERA, stats.WHIP, stats.IP, stats.K9, stats.FIP
 		if err := s.UpsertPlayer(&p); err != nil {
 			log.Printf("  Warning: failed to save player %s: %v", p.Name, err)
 			continue
@@ -196,11 +219,29 @@ func fetchSeasonStats(mlbID int64, season int) (*seasonStats, error) {
 		switch statGroup.Group.DisplayName {
 		case "hitting":
 			result.WAR = stat.WAR.Value
+			result.OBP = stat.OBP.Ptr()
+			result.SLG = stat.SLG.Ptr()
+			result.OPS = stat.OPS.Ptr()
 		case "pitching":
 			result.ERA = stat.ERA.Ptr()
+			result.WHIP = stat.WHIP.Ptr()
+			result.IP = stat.IP.Ptr()
+			result.K9 = stat.K9.Ptr()
+			result.FIP = computeFIP(stat.HomeRuns, stat.BaseOnBalls, stat.HitByPitch, stat.StrikeOuts, stat.Outs)
 		}
 	}
 	return result, nil
+}
+
+// computeFIP returns Fielding Independent Pitching, or nil with no innings.
+// Uses outs rather than inningsPitched, which is in baseball notation.
+func computeFIP(hr, bb, hbp, k, outs int) *float64 {
+	if outs == 0 {
+		return nil
+	}
+	innings := float64(outs) / 3
+	fip := float64(13*hr+3*(bb+hbp)-2*k)/innings + fipConstant
+	return &fip
 }
 
 func fetchPlayerAge(mlbID int64) (int, error) {

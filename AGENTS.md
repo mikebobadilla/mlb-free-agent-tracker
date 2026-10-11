@@ -52,8 +52,10 @@ make clean      # Remove binary + database
 
 ## Known Issues
 
-- MLB Stats API returns ERA as a string for some pitchers — causes JSON unmarshal error. Needs a custom type or string-to-float conversion.
-- No last-season fallback: during offseason, stats show as zero since the API returns no current-season data.
+- WAR and wRC+ are not available from the MLB Stats API — the WAR column is always empty until P1-005 picks a source.
+- MLB Stats API returns most rate stats as strings (`"3.20"`). Decode stat fields with `FlexFloat` (`internal/jobs/stats_sync.go`); nullable stats are `*float64` and render with the `stat`/`avg` template funcs, never `printf` (a pointer prints as `%!f(*float64=0x...)`).
+- `inningsPitched` is in baseball notation (42.2 = 42 2/3). Use `outs` for any math.
+- New `players` columns go in both `schema.sql` and `addedColumns` in `internal/db/db.go`, so existing databases get them.
 - `repeat` template func is defined in `cmd/server/main.go` — if you add new template functions, put them there.
 
 ## Conventions

@@ -39,6 +39,30 @@ func TestUpsertPlayerRoundTrip(t *testing.T) {
 	}
 }
 
+func TestUpsertPlayerAllStats(t *testing.T) {
+	s := newTestStore(t)
+	f := func(v float64) *float64 { return &v }
+	in := models.Player{Name: "Two Way", Position: "TWP", MLBID: 1, Season: 2026,
+		OBP: f(.393), SLG: f(.515), OPS: f(.908),
+		ERA: f(1.9), WHIP: f(1.1), IP: f(42.2), K9: f(11.6), FIP: f(1.72)}
+	if err := s.UpsertPlayer(&in); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetPlayerByMLBID(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, pair := range map[string][2]*float64{
+		"OBP": {got.OBP, in.OBP}, "SLG": {got.SLG, in.SLG}, "OPS": {got.OPS, in.OPS},
+		"ERA": {got.ERA, in.ERA}, "WHIP": {got.WHIP, in.WHIP}, "IP": {got.IP, in.IP},
+		"K9": {got.K9, in.K9}, "FIP": {got.FIP, in.FIP},
+	} {
+		if pair[0] == nil || *pair[0] != *pair[1] {
+			t.Errorf("%s = %v, want %v", name, pair[0], *pair[1])
+		}
+	}
+}
+
 func TestUpsertPlayerNoStats(t *testing.T) {
 	s := newTestStore(t)
 	in := models.Player{Name: "Juan Soto", Position: "OF", MLBID: 665742}

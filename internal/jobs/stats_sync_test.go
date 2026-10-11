@@ -3,6 +3,7 @@ package jobs
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -137,5 +138,55 @@ func TestFetchSeasonStatsUndefinedERA(t *testing.T) {
 	}
 	if stats == nil || stats.Season != 2026 || stats.ERA != nil {
 		t.Errorf("got %+v, want season 2026 with nil ERA", stats)
+	}
+}
+
+func TestComputeFIP(t *testing.T) {
+	// Snell 2026: 0 HR, 16 BB, 1 HBP, 55 K, 128 outs (42 2/3 IP)
+	fip := computeFIP(0, 16, 1, 55, 128)
+	if fip == nil || math.Abs(*fip-1.717) > 0.001 {
+		t.Errorf("computeFIP = %v, want ~1.717", fip)
+	}
+	if computeFIP(1, 1, 0, 0, 0) != nil {
+		t.Error("computeFIP with 0 outs should be nil")
+	}
+}
+
+func TestFetchSeasonStatsAllFields(t *testing.T) {
+	fakeMLBAPI(t, 30, map[string]string{"2026": `{"stats":[
+		{"type":{"displayName":"season"},"group":{"displayName":"hitting"},
+		 "splits":[{"stat":{"obp":".393","slg":".515","ops":".908"}}]},
+		{"type":{"displayName":"season"},"group":{"displayName":"pitching"},
+		 "splits":[{"stat":{"era":"1.90","whip":"1.10","inningsPitched":"42.2","strikeoutsPer9Inn":"11.60",
+		   "outs":128,"homeRuns":0,"baseOnBalls":16,"hitByPitch":1,"strikeOuts":55}}]}]}`})
+	s, err := fetchSeasonStats(1, 2026)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checks := []struct {
+		name string
+		got  *float64
+		want float64
+	}{
+		{"OBP", s.OBP, .393}, {"SLG", s.SLG, .515}, {"OPS", s.OPS, .908},
+		{"ERA", s.ERA, 1.90}, {"WHIP", s.WHIP, 1.10}, {"IP", s.IP, 42.2}, {"K9", s.K9, 11.60},
+		{"FIP", s.FIP, 1.717},
+	}
+	for _, c := range checks {
+		if c.got == nil || math.Abs(*c.got-c.want) > 0.001 {
+			t.Errorf("%s = %v, want %v", c.name, c.got, c.want)
+		}
+	}
+}
+
+func TestFetchSeasonStatsHitterHasNoPitching(t *testing.T) {
+	fakeMLBAPI(t, 27, map[string]string{"2026": `{"stats":[{"type":{"displayName":"season"},"group":{"displayName":"hitting"},
+		"splits":[{"stat":{"obp":".393","slg":".515","ops":".908"}}]}]}`})
+	s, err := fetchSeasonStats(1, 2026)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.ERA != nil || s.WHIP != nil || s.IP != nil || s.K9 != nil || s.FIP != nil {
+		t.Errorf("hitter got pitching stats: %+v", s)
 	}
 }

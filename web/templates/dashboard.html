@@ -22,7 +22,10 @@
                     <th>Prev Team</th>
                     <th>Season</th>
                     <th>WAR</th>
+                    <th>OPS</th>
                     <th>ERA</th>
+                    <th>WHIP</th>
+                    <th>FIP</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -35,7 +38,10 @@
                     <td>{{.Player.PrevTeam}}</td>
                     <td>{{if .Player.Season}}{{.Player.Season}}{{else}}-{{end}}</td>
                     <td>{{if gt .Player.WAR 0.0}}{{printf "%.1f" .Player.WAR}}{{else}}-{{end}}</td>
+                    <td>{{avg .Player.OPS}}</td>
                     <td>{{stat "%.2f" .Player.ERA}}</td>
+                    <td>{{stat "%.2f" .Player.WHIP}}</td>
+                    <td>{{stat "%.2f" .Player.FIP}}</td>
                     <td>
                         {{if .Contract}}
                             <span class="badge signed">Signed ({{.Contract.Team}})</span>
@@ -45,7 +51,7 @@
                     </td>
                 </tr>
                 {{else}}
-                <tr><td colspan="8">No players tracked yet.</td></tr>
+                <tr><td colspan="11">No players tracked yet.</td></tr>
                 {{end}}
             </tbody>
         </table>

@@ -17,18 +17,27 @@ func New(db *sql.DB) *Store {
 // is managed separately (UpdatePlayerStatus); new players start as unsigned.
 func (s *Store) UpsertPlayer(p *models.Player) error {
 	_, err := s.db.Exec(`
-		INSERT INTO players (mlb_id, name, position, age, prev_team, war, era, season, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+		INSERT INTO players (mlb_id, name, position, age, prev_team, war, season,
+			obp, slg, ops, era, whip, ip, k9, fip, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
 		ON CONFLICT(mlb_id) DO UPDATE SET
 			name = excluded.name,
 			position = excluded.position,
 			age = excluded.age,
 			prev_team = excluded.prev_team,
 			war = excluded.war,
-			era = excluded.era,
 			season = excluded.season,
+			obp = excluded.obp,
+			slg = excluded.slg,
+			ops = excluded.ops,
+			era = excluded.era,
+			whip = excluded.whip,
+			ip = excluded.ip,
+			k9 = excluded.k9,
+			fip = excluded.fip,
 			updated_at = excluded.updated_at
-	`, p.MLBID, p.Name, p.Position, p.Age, p.PrevTeam, p.WAR, p.ERA, nullIfZero(p.Season))
+	`, p.MLBID, p.Name, p.Position, p.Age, p.PrevTeam, p.WAR, nullIfZero(p.Season),
+		p.OBP, p.SLG, p.OPS, p.ERA, p.WHIP, p.IP, p.K9, p.FIP)
 	return err
 }
 
@@ -47,7 +56,8 @@ func (s *Store) UpsertPlayerConfig(p *models.Player) error {
 }
 
 // playerColumns and scanPlayer must stay in the same order.
-const playerColumns = `id, mlb_id, name, position, age, prev_team, war, era, season, status, updated_at`
+const playerColumns = `id, mlb_id, name, position, age, prev_team, war, season, status, updated_at,
+	obp, slg, ops, era, whip, ip, k9, fip`
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -56,17 +66,19 @@ type scanner interface {
 func scanPlayer(row scanner) (*models.Player, error) {
 	var p models.Player
 	var age, season sql.NullInt64
-	var war, era sql.NullFloat64
+	var war, obp, slg, ops, era, whip, ip, k9, fip sql.NullFloat64
 	var prevTeam, status sql.NullString
-	if err := row.Scan(&p.ID, &p.MLBID, &p.Name, &p.Position, &age, &prevTeam, &war, &era, &season, &status, &p.UpdatedAt); err != nil {
+	if err := row.Scan(&p.ID, &p.MLBID, &p.Name, &p.Position, &age, &prevTeam, &war, &season, &status, &p.UpdatedAt,
+		&obp, &slg, &ops, &era, &whip, &ip, &k9, &fip); err != nil {
 		return nil, err
 	}
 	p.Age = int(age.Int64)
 	p.PrevTeam = prevTeam.String
 	p.WAR = war.Float64
-	p.ERA = floatPtr(era)
 	p.Season = int(season.Int64)
 	p.Status = status.String
+	p.OBP, p.SLG, p.OPS = floatPtr(obp), floatPtr(slg), floatPtr(ops)
+	p.ERA, p.WHIP, p.IP, p.K9, p.FIP = floatPtr(era), floatPtr(whip), floatPtr(ip), floatPtr(k9), floatPtr(fip)
 	return &p, nil
 }
 

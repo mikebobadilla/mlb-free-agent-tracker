@@ -23,6 +23,7 @@ var funcMap = template.FuncMap{
 		return strings.Repeat(s, count)
 	},
 	"stat": formatStat,
+	"avg":  formatAvg,
 }
 
 // formatStat formats a nullable stat, or returns "-" when it isn't set.
@@ -31,6 +32,16 @@ func formatStat(format string, v *float64) string {
 		return "-"
 	}
 	return fmt.Sprintf(format, *v)
+}
+
+// formatAvg formats a rate stat baseball-style, without the leading zero
+// (.393), or returns "-" when it isn't set.
+func formatAvg(v *float64) string {
+	s := formatStat("%.3f", v)
+	if strings.HasPrefix(s, "0.") {
+		return s[1:]
+	}
+	return s
 }
 
 type Config struct {

@@ -17,6 +17,13 @@ var schema string
 // databases get them from schema.sql; Migrate adds them to older databases.
 var addedColumns = []struct{ name, sqlType string }{
 	{"season", "INTEGER"},
+	{"obp", "REAL"},
+	{"slg", "REAL"},
+	{"ops", "REAL"},
+	{"whip", "REAL"},
+	{"ip", "REAL"},
+	{"k9", "REAL"},
+	{"fip", "REAL"},
 }
 
 func Open(dbPath string) (*sql.DB, error) {
