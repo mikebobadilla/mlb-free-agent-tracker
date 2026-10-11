@@ -16,18 +16,59 @@
         <h1>{{.Player.Name}}</h1>
         <p class="meta">{{.Player.Position}} | Age {{.Player.Age}} | Previously {{.Player.PrevTeam}}</p>
 
+        <h2>{{if .Player.Season}}{{.Player.Season}} Season{{else}}Stats{{end}}</h2>
+        {{if not .Player.Season}}<p>No stats for this season or last season yet.</p>{{end}}
         <div class="stats-row">
             <div class="stat-box">
                 <span class="stat-label">WAR</span>
                 <span class="stat-value">{{if gt .Player.WAR 0.0}}{{printf "%.1f" .Player.WAR}}{{else}}-{{end}}</span>
             </div>
-            {{if .Player.ERA}}
+        </div>
+
+        {{if or .Player.OBP .Player.SLG .Player.OPS}}
+        <h3>Hitting</h3>
+        <div class="stats-row">
+            <div class="stat-box">
+                <span class="stat-label">OBP</span>
+                <span class="stat-value">{{avg .Player.OBP}}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">SLG</span>
+                <span class="stat-value">{{avg .Player.SLG}}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">OPS</span>
+                <span class="stat-value">{{avg .Player.OPS}}</span>
+            </div>
+        </div>
+        {{end}}
+
+        {{if or .Player.ERA .Player.WHIP .Player.IP .Player.K9 .Player.FIP}}
+        <h3>Pitching</h3>
+        <div class="stats-row">
             <div class="stat-box">
                 <span class="stat-label">ERA</span>
-                <span class="stat-value">{{printf "%.2f" .Player.ERA}}</span>
+                <span class="stat-value">{{stat "%.2f" .Player.ERA}}</span>
             </div>
-            {{end}}
+            <div class="stat-box">
+                <span class="stat-label">WHIP</span>
+                <span class="stat-value">{{stat "%.2f" .Player.WHIP}}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">IP</span>
+                <span class="stat-value">{{stat "%.1f" .Player.IP}}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">K/9</span>
+                <span class="stat-value">{{stat "%.2f" .Player.K9}}</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">FIP</span>
+                <span class="stat-value">{{stat "%.2f" .Player.FIP}}</span>
+            </div>
         </div>
+        <p class="meta"><small>FIP uses a fixed league constant of 3.10, so it's approximate.</small></p>
+        {{end}}
 
         <h2>Status</h2>
         {{if .Contract}}
