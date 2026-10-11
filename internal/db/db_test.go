@@ -51,7 +51,7 @@ func TestMigrateAddsColumnsToOldDB(t *testing.T) {
 		status TEXT DEFAULT 'unsigned',
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
-	INSERT INTO players (mlb_id, name, position) VALUES (1, 'Old Player', 'SP');`)
+	INSERT INTO players (mlb_id, name, position, status) VALUES (1, 'Old Player', 'SP', '');`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +60,15 @@ func TestMigrateAddsColumnsToOldDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var name string
+	var name, status string
 	var season sql.NullInt64
-	if err := db.QueryRow("SELECT name, season FROM players WHERE mlb_id = 1").Scan(&name, &season); err != nil {
+	if err := db.QueryRow("SELECT name, season, status FROM players WHERE mlb_id = 1").Scan(&name, &season, &status); err != nil {
 		t.Fatal(err)
 	}
 	if name != "Old Player" || season.Valid {
 		t.Errorf("got name=%q season=%v, want existing row kept with NULL season", name, season)
+	}
+	if status != "unsigned" {
+		t.Errorf("status = %q, want blank status repaired to unsigned", status)
 	}
 }

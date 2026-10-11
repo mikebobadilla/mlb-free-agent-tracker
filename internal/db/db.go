@@ -54,7 +54,10 @@ func Migrate(db *sql.DB) error {
 			return fmt.Errorf("adding column %s: %w", col.name, err)
 		}
 	}
-	return nil
+
+	// Older versions of the sync and server startup wrote a blank status.
+	_, err = db.Exec(`UPDATE players SET status = 'unsigned' WHERE status IS NULL OR status = ''`)
+	return err
 }
 
 func playerColumns(db *sql.DB) (map[string]bool, error) {

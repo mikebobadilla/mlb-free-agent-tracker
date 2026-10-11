@@ -13,10 +13,12 @@ func New(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
+// UpsertPlayer saves a player's synced stats. It never changes status, which
+// is managed separately (UpdatePlayerStatus); new players start as unsigned.
 func (s *Store) UpsertPlayer(p *models.Player) error {
 	_, err := s.db.Exec(`
-		INSERT INTO players (mlb_id, name, position, age, prev_team, war, era, season, status, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+		INSERT INTO players (mlb_id, name, position, age, prev_team, war, era, season, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
 		ON CONFLICT(mlb_id) DO UPDATE SET
 			name = excluded.name,
 			position = excluded.position,
@@ -25,9 +27,22 @@ func (s *Store) UpsertPlayer(p *models.Player) error {
 			war = excluded.war,
 			era = excluded.era,
 			season = excluded.season,
-			status = excluded.status,
 			updated_at = excluded.updated_at
-	`, p.MLBID, p.Name, p.Position, p.Age, p.PrevTeam, p.WAR, p.ERA, nullIfZero(p.Season), p.Status)
+	`, p.MLBID, p.Name, p.Position, p.Age, p.PrevTeam, p.WAR, p.ERA, nullIfZero(p.Season))
+	return err
+}
+
+// UpsertPlayerConfig saves the fields that come from players.yaml. Existing
+// players keep their synced stats and status.
+func (s *Store) UpsertPlayerConfig(p *models.Player) error {
+	_, err := s.db.Exec(`
+		INSERT INTO players (mlb_id, name, position, prev_team)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(mlb_id) DO UPDATE SET
+			name = excluded.name,
+			position = excluded.position,
+			prev_team = excluded.prev_team
+	`, p.MLBID, p.Name, p.Position, p.PrevTeam)
 	return err
 }
 
