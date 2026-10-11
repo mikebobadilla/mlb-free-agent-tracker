@@ -1,41 +1,137 @@
 # MLB Free Agent Tracker — Feature Plan
 
-Last updated: 2026-10-10
+Last updated: 2026-10-11
+
+Decisions behind these cards are logged in [DECISIONS.md](DECISIONS.md).
+
+## Board
+
+Active and upcoming work. Update this table in the same commit as any card status change.
+
+| ID | Card | Status | Branch | Decisions |
+|----|------|--------|--------|-----------|
+| P1-001 | Fix ERA parsing bug | IN REVIEW | `feature/phase1-stats-pipeline` | D-003 |
+| P1-002 | Last-season stats fallback | IN REVIEW | `feature/phase1-stats-pipeline` | D-004, D-005, D-010, D-012 |
+| P1-003 | More stats (OPS, WHIP, IP, FIP, K/9) | IN REVIEW | `feature/phase1-stats-pipeline` | D-009, D-010, D-013, D-014 |
+| P1-004 | Sync player age | IN REVIEW | `feature/phase1-stats-pipeline` | D-006 |
+| P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
+| P1-006 | Server startup wipes synced data | IN REVIEW | `feature/phase1-stats-pipeline` | D-011 |
+
+All other cards (Phases 2–7) are NOT STARTED.
 
 ## Status Legend
 
 | Status | Meaning |
 |--------|---------|
 | NOT STARTED | Card created, not yet groomed |
-| GROOMING | Being refined — discussing scope, approach, details |
-| READY | Groomed and ready to hand off to an agent |
-| IN PROGRESS | Agent actively working on it |
-| DONE | Shipped |
+| GROOMING | Being refined — scope, approach, open questions |
+| READY | Has acceptance criteria and no open questions; can be handed to an agent |
+| IN PROGRESS | Being built on a feature branch |
+| IN REVIEW | Pushed; waiting on PR review/merge |
+| BLOCKED | Waiting on a decision or external dependency (say which in the card) |
+| DONE | Merged to `main` |
+
+## Workflow
+
+1. **Groom:** fill in the card's Approach, Acceptance criteria and Open questions. Every answered question becomes an entry in DECISIONS.md. Card moves to READY when there are no open questions.
+2. **Build:** create or reuse a `feature/<desc>` branch in a git worktree (D-001). Set the card to IN PROGRESS and fill in Branch.
+3. **Test:** add tests for the change; `go vet ./...` and `go test ./...` must pass (D-008).
+4. **Push:** commit with the card ID in the message, push, and set the card to IN REVIEW. The PR is opened and merged by a human.
+5. **Done:** after merge, set the card to DONE.
+
+Cards gain the full template below when they're groomed. Ungroomed cards keep the short form.
+
+```
+### [STATUS] Title
+- **ID:** PX-NNN
+- **Branch / PR:** feature/... / #NN
+- **Problem:** / **Impact:** / **Approach:**
+- **Acceptance criteria:** checklist of observable outcomes
+- **Open questions:** (empty when READY)
+- **Decisions:** D-NNN, ...
+- **Files:**
+```
 
 ---
 
 ## Phase 1 — Data Quality
 
-### [NOT STARTED] Fix ERA parsing bug
+### [IN REVIEW] Fix ERA parsing bug
 - **ID:** P1-001
-- **Problem:** MLB Stats API returns ERA as a string for some pitchers, causing JSON unmarshal errors in `internal/jobs/stats_sync.go`
+- **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
+- **Problem:** MLB Stats API returns ERA (and other rate stats) as JSON strings, causing unmarshal errors in `internal/jobs/stats_sync.go`
 - **Impact:** Pitchers (Burnes, Snell, Fried) don't get stats synced
-- **Approach:** Custom `FlexFloat` type or string-to-float conversion in the stats response struct
-- **Files:** `internal/jobs/stats_sync.go`
+- **Approach:** `FlexFloat` type that accepts JSON numbers or numeric strings
+- **Acceptance criteria:**
+  - [x] Burnes, Snell, Fried sync with an ERA (verified against live API)
+  - [x] Unit tests cover number, string and placeholder inputs
+- **Decisions:** D-003
+- **Files:** `internal/jobs/stats_sync.go`, `internal/jobs/stats_sync_test.go`
 
-### [NOT STARTED] Add last-season stats fallback
+### [IN REVIEW] Add last-season stats fallback
 - **ID:** P1-002
-- **Problem:** During offseason, current-season stats are empty — dashboard shows zeros
+- **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
+- **Problem:** The sync stored career stats; season stats are what matter for free agency, and the current season is empty during the offseason
 - **Impact:** Dashboard looks empty/broken during the offseason when tracking matters most
-- **Approach:** When current-season stats are empty, fall back to last season's stats. Add a `season` column to distinguish.
-- **Files:** `internal/jobs/stats_sync.go`, `internal/db/schema.sql`, `internal/models/models.go`
+- **Approach:** Fetch the current season; if the API returns no splits, fetch the previous season. Use the season-total split for traded players. Store the season in a new `season` column and show it in the UI.
+- **Acceptance criteria:**
+  - [x] Players with no current-season data show the previous season's stats (fake-API test; can't trigger live until the 2027 season starts)
+  - [x] The dashboard and player page show which season the stats are from
+  - [x] Traded players show season totals, not one team's split
+  - [x] Existing databases get the `season` column without being deleted
+  - [x] Tests cover current season, fallback, no data in either season, traded player
+- **Decisions:** D-004, D-005, D-010, D-012
+- **Files:** `internal/jobs/stats_sync.go`, `internal/db/`, `internal/models/models.go`, `internal/store/store.go`, `web/templates/`
 
-### [NOT STARTED] Add more stats (OPS, WHIP, IP, FIP, wRC+)
+### [IN REVIEW] Add more stats (OPS, WHIP, IP, FIP, K/9)
 - **ID:** P1-003
+- **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
 - **Problem:** Only WAR and ERA are tracked — not enough for meaningful analysis
 - **Impact:** Can't compare players properly on the dashboard
-- **Approach:** Expand the stats sync to pull hitting (OBP, SLG, OPS, wRC+) and pitching (WHIP, IP, FIP, K/9) stats. Add columns to schema, update dashboard display.
-- **Files:** `internal/jobs/stats_sync.go`, `internal/db/schema.sql`, `internal/models/models.go`, `web/templates/dashboard.html`
+- **Approach:** Hitting: OBP, SLG, OPS from the MLB API. Pitching: WHIP, IP, K/9 from the MLB API; FIP computed from HR, BB, HBP, K, IP. WAR and wRC+ are split out to P1-005.
+- **Acceptance criteria:**
+  - [x] Hitters show OBP / SLG / OPS; pitchers show ERA / WHIP / IP / K/9 / FIP
+  - [x] Undefined stats show `-`, not `0`
+  - [x] FIP computation has unit tests
+- **Decisions:** D-009, D-010, D-013, D-014
+- **Files:** `internal/jobs/stats_sync.go`, `internal/db/schema.sql`, `internal/models/models.go`, `internal/store/store.go`, `web/templates/`
+
+### [IN REVIEW] Sync player age
+- **ID:** P1-004
+- **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
+- **Problem:** Age was read from the stats response, which doesn't include it — always 0
+- **Approach:** Fetch `currentAge` from `/people/{id}`
+- **Acceptance criteria:**
+  - [x] All tracked players show a non-zero age after sync
+  - [x] Unit test against a fake API server
+- **Decisions:** D-006
+- **Files:** `internal/jobs/stats_sync.go`
+
+### [GROOMING] Source WAR and wRC+
+- **ID:** P1-005
+- **Problem:** The MLB Stats API has no WAR or wRC+; the WAR column is always empty
+- **Impact:** WAR is the most common single-number comparison for free agents
+- **Approach:** TBD — needs a second data source
+- **Open questions:**
+  - Which source: FanGraphs (unofficial JSON), Baseball-Reference (scraping), or a manual `war` field in `players.yaml`?
+  - fWAR or bWAR?
+  - Is an unofficial/undocumented dependency acceptable?
+- **Decisions:** D-007, D-009
+- **Files:** TBD
+
+### [IN REVIEW] Server startup wipes synced data
+- **ID:** P1-006
+- **Branch / PR:** `feature/phase1-stats-pipeline` / PR pending
+- **Problem:** `cmd/server/main.go` upserts YAML players through `UpsertPlayer`, resetting age, stats and status on every restart
+- **Impact:** A player marked signed flips back to unsigned whenever the server restarts
+- **Approach:** Separate store function that inserts new players and updates only config fields (name, position, prev_team)
+- **Acceptance criteria:**
+  - [x] Restarting the server keeps age, stats and status
+  - [x] New players added to the YAML still appear before the first sync
+  - [x] Store test against a temporary SQLite DB
+  - [x] Blank statuses written by older versions are repaired to `unsigned`
+- **Decisions:** D-011
+- **Files:** `cmd/server/main.go`, `internal/store/store.go`
 
 ---
 
