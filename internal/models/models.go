@@ -14,7 +14,19 @@ type Player struct {
 	Status    string    `yaml:"-"` // unsigned | negotiating | signed
 	Season    int       `yaml:"-"` // season the stats are from; 0 if none
 	WAR       float64   `yaml:"-"`
-	ERA       *float64  `yaml:"-"`
+
+	// Hitting; nil when not set
+	OBP *float64 `yaml:"-"`
+	SLG *float64 `yaml:"-"`
+	OPS *float64 `yaml:"-"`
+
+	// Pitching; nil when not set. IP is in baseball notation (42.2 = 42 2/3).
+	ERA  *float64 `yaml:"-"`
+	WHIP *float64 `yaml:"-"`
+	IP   *float64 `yaml:"-"`
+	K9   *float64 `yaml:"-"`
+	FIP  *float64 `yaml:"-"`
+
 	UpdatedAt time.Time `yaml:"-"`
 }
 
