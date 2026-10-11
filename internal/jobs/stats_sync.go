@@ -8,14 +8,47 @@ import (
 	"mlb-tracker/internal/models"
 	"mlb-tracker/internal/store"
 	"net/http"
+	"strconv"
 	"time"
 )
 
 const (
-	mlbAPIBase     = "https://statsapi.mlb.com/api/v1"
-	requestDelay   = 200 * time.Millisecond
-	syncInterval   = 6 * time.Hour
+	mlbAPIBase   = "https://statsapi.mlb.com/api/v1"
+	requestDelay = 200 * time.Millisecond
+	syncInterval = 6 * time.Hour
 )
+
+// FlexFloat handles MLB API returning numbers as either JSON strings or JSON numbers.
+type FlexFloat float64
+
+func (f *FlexFloat) UnmarshalJSON(data []byte) error {
+	// Try as JSON number first
+	var num float64
+	if err := json.Unmarshal(data, &num); err == nil {
+		*f = FlexFloat(num)
+		return nil
+	}
+
+	// Try as JSON string
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return fmt.Errorf("cannot unmarshal %s as float64 or string", string(data))
+	}
+
+	// Placeholders the API uses when a rate stat is undefined (e.g. 0 IP)
+	switch str {
+	case "", "-", ".---", "-.--", "*.**":
+		*f = 0
+		return nil
+	}
+
+	val, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		return fmt.Errorf("cannot parse %q as float64: %w", str, err)
+	}
+	*f = FlexFloat(val)
+	return nil
+}
 
 type MLBStatsResponse struct {
 	Stats []struct {
@@ -27,9 +60,9 @@ type MLBStatsResponse struct {
 		} `json:"group"`
 		Splits []struct {
 			Stat struct {
-				WAR  float64 `json:"war"`
-				ERA  float64 `json:"era"`
-				GamesPlayed int `json:"gamesPlayed"`
+				WAR         FlexFloat `json:"war"`
+				ERA         FlexFloat `json:"era"`
+				GamesPlayed int       `json:"gamesPlayed"`
 			} `json:"stat"`
 		} `json:"splits"`
 	} `json:"stats"`
@@ -107,9 +140,9 @@ func fetchPlayerStats(mlbID int64) (*struct {
 			if len(statGroup.Splits) > 0 {
 				split := statGroup.Splits[0].Stat
 				if statGroup.Group.DisplayName == "hitting" {
-					result.WAR = split.WAR
+					result.WAR = float64(split.WAR)
 				} else if statGroup.Group.DisplayName == "pitching" {
-					era := split.ERA
+					era := float64(split.ERA)
 					result.ERA = &era
 				}
 			}
