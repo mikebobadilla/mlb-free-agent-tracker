@@ -58,6 +58,7 @@ make clean      # Remove binary + database
 
 ## Conventions
 
+- **Worktree workflow:** All feature work must be done on a new branch in a git worktree. Never work directly on `main`. Branch naming: `feature/<short-description>`.
 - Keep dependencies minimal. Standard library first, add packages sparingly.
 - SQL queries live in `internal/store/store.go` — don't scatter SQL across handlers.
 - Background jobs go in `internal/jobs/` — each job is a standalone function.
