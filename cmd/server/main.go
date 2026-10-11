@@ -69,10 +69,11 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Initialize store and upsert players
+	// Initialize store and add any new players from the config. Synced
+	// stats and status are left alone; the background sync fills them in.
 	s := store.New(database)
 	for _, p := range cfg.Players {
-		if err := s.UpsertPlayer(&p); err != nil {
+		if err := s.UpsertPlayerConfig(&p); err != nil {
 			log.Printf("Failed to upsert player %s: %v", p.Name, err)
 		}
 	}
