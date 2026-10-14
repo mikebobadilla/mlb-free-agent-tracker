@@ -24,6 +24,7 @@ var addedColumns = []struct{ name, sqlType string }{
 	{"ip", "REAL"},
 	{"k9", "REAL"},
 	{"fip", "REAL"},
+	{"contract_expiry", "INTEGER"},
 }
 
 func Open(dbPath string) (*sql.DB, error) {

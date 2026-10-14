@@ -57,7 +57,7 @@ func (s *Store) UpsertPlayerConfig(p *models.Player) error {
 
 // playerColumns and scanPlayer must stay in the same order.
 const playerColumns = `id, mlb_id, name, position, age, prev_team, war, season, status, updated_at,
-	obp, slg, ops, era, whip, ip, k9, fip`
+	obp, slg, ops, era, whip, ip, k9, fip, contract_expiry`
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -65,11 +65,11 @@ type scanner interface {
 
 func scanPlayer(row scanner) (*models.Player, error) {
 	var p models.Player
-	var age, season sql.NullInt64
+	var age, season, contractExpiry sql.NullInt64
 	var war, obp, slg, ops, era, whip, ip, k9, fip sql.NullFloat64
 	var prevTeam, status sql.NullString
 	if err := row.Scan(&p.ID, &p.MLBID, &p.Name, &p.Position, &age, &prevTeam, &war, &season, &status, &p.UpdatedAt,
-		&obp, &slg, &ops, &era, &whip, &ip, &k9, &fip); err != nil {
+		&obp, &slg, &ops, &era, &whip, &ip, &k9, &fip, &contractExpiry); err != nil {
 		return nil, err
 	}
 	p.Age = int(age.Int64)
@@ -77,6 +77,7 @@ func scanPlayer(row scanner) (*models.Player, error) {
 	p.WAR = war.Float64
 	p.Season = int(season.Int64)
 	p.Status = status.String
+	p.ContractExpiry = int(contractExpiry.Int64)
 	p.OBP, p.SLG, p.OPS = floatPtr(obp), floatPtr(slg), floatPtr(ops)
 	p.ERA, p.WHIP, p.IP, p.K9, p.FIP = floatPtr(era), floatPtr(whip), floatPtr(ip), floatPtr(k9), floatPtr(fip)
 	return &p, nil
@@ -250,5 +251,11 @@ func (s *Store) SavePrediction(p *models.Prediction) error {
 
 func (s *Store) UpdatePlayerStatus(playerID int64, status string) error {
 	_, err := s.db.Exec(`UPDATE players SET status = ? WHERE id = ?`, status, playerID)
+	return err
+}
+
+// SetContractExpiry sets the contract expiration year for a player.
+func (s *Store) SetContractExpiry(playerID int64, year int) error {
+	_, err := s.db.Exec(`UPDATE players SET contract_expiry = ? WHERE id = ?`, year, playerID)
 	return err
 }

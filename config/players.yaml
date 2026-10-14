@@ -31,3 +31,15 @@ players:
     position: OF
     mlb_id: 606192
     prev_team: Dodgers
+  - name: Adrian Morejon
+    position: RP
+    mlb_id: 670970
+    prev_team: Padres
+  - name: Michael King
+    position: SP
+    mlb_id: 650633
+    prev_team: Padres
+  - name: Ty France
+    position: 1B
+    mlb_id: 664034
+    prev_team: Padres

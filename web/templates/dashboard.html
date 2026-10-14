@@ -26,6 +26,7 @@
                     <th>ERA</th>
                     <th>WHIP</th>
                     <th>FIP</th>
+                    <th>Contract Expires</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -42,6 +43,7 @@
                     <td>{{stat "%.2f" .Player.ERA}}</td>
                     <td>{{stat "%.2f" .Player.WHIP}}</td>
                     <td>{{stat "%.2f" .Player.FIP}}</td>
+                    <td>{{if .Player.ContractExpiry}}{{.Player.ContractExpiry}}{{else}}-{{end}}</td>
                     <td>
                         {{if .Contract}}
                             <span class="badge signed">Signed ({{.Contract.Team}})</span>
@@ -51,7 +53,7 @@
                     </td>
                 </tr>
                 {{else}}
-                <tr><td colspan="11">No players tracked yet.</td></tr>
+                <tr><td colspan="12">No players tracked yet.</td></tr>
                 {{end}}
             </tbody>
         </table>

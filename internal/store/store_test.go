@@ -137,3 +137,34 @@ func TestUpsertPlayerConfigAddsNewPlayer(t *testing.T) {
 		t.Errorf("got %+v", got)
 	}
 }
+
+func TestSetContractExpiry(t *testing.T) {
+	s := newTestStore(t)
+	p := models.Player{Name: "Adrian Morejon", Position: "RP", MLBID: 670970, PrevTeam: "Padres"}
+	if err := s.UpsertPlayerConfig(&p); err != nil {
+		t.Fatal(err)
+	}
+
+	// Initially 0 (unknown)
+	got, err := s.GetPlayerByMLBID(670970)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ContractExpiry != 0 {
+		t.Errorf("initial contract_expiry = %d, want 0", got.ContractExpiry)
+	}
+
+	// Set expiry
+	if err := s.SetContractExpiry(got.ID, 2026); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify
+	got, err = s.GetPlayerByMLBID(670970)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ContractExpiry != 2026 {
+		t.Errorf("contract_expiry = %d, want 2026", got.ContractExpiry)
+	}
+}

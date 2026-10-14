@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS players (
     ip REAL,
     k9 REAL,
     fip REAL,
+    contract_expiry INTEGER,
     status TEXT DEFAULT 'unsigned',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
