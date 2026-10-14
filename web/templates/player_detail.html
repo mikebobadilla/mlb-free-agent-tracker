@@ -74,9 +74,9 @@
         {{if .Contract}}
         <div class="contract-card">
             <p><strong>Signed with:</strong> {{.Contract.Team}}</p>
-            <p><strong>Years:</strong> {{.Contract.Years}}</p>
-            <p><strong>Total Value:</strong> ${{.Contract.TotalValue}}M</p>
-            <p><strong>AAV:</strong> ${{.Contract.AAV}}M</p>
+            {{if .Contract.Years}}<p><strong>Years:</strong> {{.Contract.Years}}</p>{{end}}
+            {{if .Contract.TotalValue}}<p><strong>Total Value:</strong> ${{.Contract.TotalValue}}M</p>{{end}}
+            {{if .Contract.AAV}}<p><strong>AAV:</strong> ${{.Contract.AAV}}M</p>{{end}}
             <p><strong>Signed:</strong> {{.Contract.SignedDate}}</p>
         </div>
         {{else}}

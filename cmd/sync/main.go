@@ -49,6 +49,9 @@ func main() {
 	if err := jobs.RunStatsSync(s, cfg.Players); err != nil {
 		log.Fatalf("Stats sync failed: %v", err)
 	}
+	if err := jobs.RunContractWatch(s, cfg.Players); err != nil {
+		log.Fatalf("Contract watch failed: %v", err)
+	}
 
 	log.Println("Sync complete")
 }
