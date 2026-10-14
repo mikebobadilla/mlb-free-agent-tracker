@@ -16,8 +16,9 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-004 | Sync player age | DONE | #1 | D-006 |
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
+| P3-001 | Auto-detect signings via MLB Transactions API | IN REVIEW | feature/P3-001-contract-watcher | D-015, D-016, D-017, D-018, D-019 |
 
-All other cards (Phases 2–7) are NOT STARTED.
+All other cards (Phases 2, 4–7) are NOT STARTED. P1-005 is GROOMING.
 
 ## Status Legend
 
@@ -162,12 +163,23 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 
 ## Phase 3 — Contract Tracking
 
-### [NOT STARTED] Auto-detect signings via MLB transactions API
+### [READY] Auto-detect signings via MLB Transactions API
 - **ID:** P3-001
+- **Branch / PR:** `feature/P3-001-contract-watcher` / —
 - **Problem:** No way to know when a tracked player signs without manually checking
 - **Impact:** The tracker goes stale as soon as someone signs
-- **Approach:** Poll MLB Stats API transactions endpoint for tracked players. When a signing is detected, auto-create a contract record and update player status to "signed".
-- **Files:** `internal/jobs/contract_watcher.go` (new), `internal/store/store.go`
+- **Approach:** Poll the MLB Stats API transactions endpoint (`/api/v1/transactions?playerId={mlb_id}&type=FA`) for each unsigned tracked player every 30 minutes. When a free agent signing is detected and no contract exists for the player, create a contract record (team + signed_date) and update player status to "signed". Contract financial terms (years, total_value, aav) are left NULL — the transactions API doesn't include dollar amounts.
+- **Acceptance criteria:**
+  - [x] Unsigned players with a FA transaction in the API get a contract record and status "signed" (httptest)
+  - [x] Players who already have a contract are not duplicated
+  - [x] Signed players are not polled again
+  - [x] The job runs every 30 minutes via a background goroutine
+  - [x] Rate limited at ~5 req/sec (200ms delay)
+  - [x] Per-player errors are logged and skipped, not fatal
+  - [x] Unit tests cover: signing detected, already signed, no signing, API error
+- **Open questions:** (empty)
+- **Decisions:** D-015, D-016, D-017, D-018, D-019
+- **Files:** `internal/jobs/contract_watcher.go` (new), `internal/jobs/contract_watcher_test.go` (new), `internal/store/store.go`, `web/templates/player_detail.html`, `cmd/server/main.go`, `cmd/sync/main.go`
 
 ### [NOT STARTED] Contract comparison (predicted vs actual)
 - **ID:** P3-002

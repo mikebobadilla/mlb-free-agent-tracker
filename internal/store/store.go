@@ -52,7 +52,15 @@ func (s *Store) UpsertPlayerConfig(p *models.Player) error {
 			position = excluded.position,
 			prev_team = excluded.prev_team
 	`, p.MLBID, p.Name, p.Position, p.PrevTeam)
-	return err
+	if err != nil {
+		return err
+	}
+	player, err := s.GetPlayerByMLBID(p.MLBID)
+	if err != nil {
+		return err
+	}
+	p.ID = player.ID
+	return nil
 }
 
 // playerColumns and scanPlayer must stay in the same order.
@@ -132,9 +140,14 @@ func (s *Store) GetContractsForPlayer(playerID int64) ([]models.Contract, error)
 	var contracts []models.Contract
 	for rows.Next() {
 		var c models.Contract
-		if err := rows.Scan(&c.ID, &c.PlayerID, &c.Team, &c.Years, &c.TotalValue, &c.AAV, &c.SignedDate, &c.CreatedAt); err != nil {
+		var years sql.NullInt64
+		var totalValue, aav sql.NullFloat64
+		if err := rows.Scan(&c.ID, &c.PlayerID, &c.Team, &years, &totalValue, &aav, &c.SignedDate, &c.CreatedAt); err != nil {
 			return nil, err
 		}
+		c.Years = int(years.Int64)
+		c.TotalValue = totalValue.Float64
+		c.AAV = aav.Float64
 		contracts = append(contracts, c)
 	}
 	return contracts, nil
@@ -142,16 +155,21 @@ func (s *Store) GetContractsForPlayer(playerID int64) ([]models.Contract, error)
 
 func (s *Store) GetLatestContract(playerID int64) (*models.Contract, error) {
 	var c models.Contract
+	var years sql.NullInt64
+	var totalValue, aav sql.NullFloat64
 	err := s.db.QueryRow(`
 		SELECT id, player_id, team, years, total_value, aav, signed_date, created_at
 		FROM contracts WHERE player_id = ? ORDER BY created_at DESC LIMIT 1
-	`, playerID).Scan(&c.ID, &c.PlayerID, &c.Team, &c.Years, &c.TotalValue, &c.AAV, &c.SignedDate, &c.CreatedAt)
+	`, playerID).Scan(&c.ID, &c.PlayerID, &c.Team, &years, &totalValue, &aav, &c.SignedDate, &c.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	c.Years = int(years.Int64)
+	c.TotalValue = totalValue.Float64
+	c.AAV = aav.Float64
 	return &c, nil
 }
 
@@ -228,7 +246,11 @@ func (s *Store) SaveContract(c *models.Contract) error {
 	_, err := s.db.Exec(`
 		INSERT INTO contracts (player_id, team, years, total_value, aav, signed_date)
 		VALUES (?, ?, ?, ?, ?, ?)
-	`, c.PlayerID, c.Team, c.Years, c.TotalValue, c.AAV, c.SignedDate)
+	`, c.PlayerID, c.Team,
+		sql.NullInt64{Int64: int64(c.Years), Valid: c.Years != 0},
+		sql.NullFloat64{Float64: c.TotalValue, Valid: c.TotalValue != 0},
+		sql.NullFloat64{Float64: c.AAV, Valid: c.AAV != 0},
+		c.SignedDate)
 	return err
 }
 
