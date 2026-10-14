@@ -97,6 +97,7 @@ func main() {
 
 	// Start background sync
 	jobs.StartBackgroundSync(s, cfg.Players)
+	jobs.StartContractWatch(s, cfg.Players)
 
 	// Setup routes
 	mux := http.NewServeMux()
