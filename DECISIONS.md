@@ -149,3 +149,39 @@ it belongs here.
 - **Decision:** Template funcs in `cmd/server/main.go`: `stat "<format>" <ptr>` (e.g. ERA `3.20`) and `avg <ptr>` (rate stats without the leading zero, `.908`). Both render `-` when the value is nil. Render tests in `cmd/server/main_test.go` fail if a pointer or format error appears in the output.
 - **Alternatives:** Store stats as plain `float64` and use `0` for "no data" — rejected by D-010.
 - **Consequences:** New stat columns must use these funcs in templates.
+
+## D-015 — Detect signings with one transactions query per tracked player
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001
+- **Context:** Verified against the live API: `/transactions?playerId=…&startDate=…&endDate=…` returns a player's transactions. Signings are `typeCode: "SFA"` with the team in `toTeam` — including re-signing with the old team (Alonso → Mets, 2025-02-12). `DFA` means "Declared Free Agency" here, not "designated for assignment". A league-wide date query also works, but returned 57 transactions for one December day, mostly minor-league moves.
+- **Decision:** Query each tracked player over the current offseason window (Oct 1 → today), rate-limited like the stats sync. The latest `SFA` in the window is the signing.
+- **Alternatives:** League-wide date-range query — fewer requests, but it needs a stored "last checked" date to avoid gaps and pulls in thousands of irrelevant rows. Revisit if the tracked list grows past ~100 players.
+- **Consequences:** Stateless: re-querying the whole window every cycle catches anything missed while the server was down. Duplicate rows are prevented by a unique `transaction_id`.
+
+## D-016 — Signings record team and date only; terms come later
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001, P3-002, P3-004
+- **Context:** Verified: the transactions API has no contract terms — only team, date and a description like "New York Mets signed free agent RF Juan Soto."
+- **Decision:** P3-001 creates contract rows with years/total/AAV left `NULL`, and the UI shows "not reported". Sourcing the terms becomes its own card (P3-004). P3-002 is BLOCKED on P3-004.
+- **Alternatives:** Manual terms in `players.yaml` as part of P3-001 (bigger card); no contract rows until terms exist (loses the team/date).
+- **Consequences:** Contract year/value fields become nullable in the model and store.
+
+## D-017 — Minor-league deals count as signings, labeled
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001
+- **Context:** Minor-league deals are also `SFA`; only the description says "…to a minor league contract".
+- **Decision:** Mark the player signed (they're off the market) and store a `minor_league` flag, shown as "minor league" next to the team.
+- **Alternatives:** Ignore minor-league deals — the player would show as unsigned after leaving the market.
+- **Consequences:** Detection depends on description wording; if MLB changes it, minor deals show as regular signings (still marked signed).
+
+## D-018 — Contract watch runs in the same cycle as the stats sync
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001
+- **Context:** The roadmap named a separate `contract_watcher.go` job; it needs a schedule.
+- **Decision:** `RunContractWatch` is a standalone function (per AGENTS.md), called by `StartBackgroundSync` right after `RunStatsSync` every 6 hours, and by `cmd/sync`.
+- **Alternatives:** Its own ticker/interval — more moving parts; signings don't need faster than 6-hour detection yet.
+- **Consequences:** One sync cycle takes longer (one extra request per player). If faster detection matters later, give it its own interval.

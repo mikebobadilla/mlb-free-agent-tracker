@@ -1,6 +1,6 @@
 # MLB Free Agent Tracker — Feature Plan
 
-Last updated: 2026-10-11
+Last updated: 2026-10-13
 
 Decisions behind these cards are logged in [DECISIONS.md](DECISIONS.md).
 
@@ -16,8 +16,11 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-004 | Sync player age | DONE | #1 | D-006 |
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
+| P3-001 | Auto-detect signings via transactions API | READY | — | D-015, D-016, D-017, D-018 |
+| P3-002 | Contract comparison (predicted vs actual) | BLOCKED on P3-004 | — | D-016 |
+| P3-004 | Source contract terms | GROOMING | — | D-016 |
 
-All other cards (Phases 2–7) are NOT STARTED.
+All other cards are NOT STARTED.
 
 ## Status Legend
 
@@ -162,15 +165,39 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 
 ## Phase 3 — Contract Tracking
 
-### [NOT STARTED] Auto-detect signings via MLB transactions API
+### [READY] Auto-detect signings via MLB transactions API
 - **ID:** P3-001
+- **Branch / PR:** —
 - **Problem:** No way to know when a tracked player signs without manually checking
 - **Impact:** The tracker goes stale as soon as someone signs
-- **Approach:** Poll MLB Stats API transactions endpoint for tracked players. When a signing is detected, auto-create a contract record and update player status to "signed".
-- **Files:** `internal/jobs/contract_watcher.go` (new), `internal/store/store.go`
+- **Approach:**
+  - New job `RunContractWatch(s *store.Store, players []models.Player) error` in `internal/jobs/contract_watcher.go`. For each tracked player, call `GET /transactions?playerId={mlb_id}&startDate={offseason start}&endDate={today}` (dates `YYYY-MM-DD`), with the existing 200ms `requestDelay` between requests. Reuse `getJSON` and `mlbAPIBase` from `stats_sync.go` (D-015).
+  - **Offseason start** = Oct 1 of the current year if today is in October or later, otherwise Oct 1 of the previous year. Put this in its own function so it can be tested.
+  - A signing is a transaction with `typeCode == "SFA"` ("Signed as Free Agent"). The team is `toTeam.name`; the date is `date`. This also covers re-signing with the old team (verified: Alonso → Mets, 2025-02-12). If there are several `SFA`s in the window, the latest one wins. **Don't** confuse it with `DFA`, which in this API means "Declared Free Agency".
+  - Minor-league deal = `SFA` whose `description` contains "minor league contract" (case-insensitive). Still a signing, but flagged (D-017).
+  - On a signing: insert a contract row (team, signed date, transaction id, minor-league flag; years/total/AAV left `NULL` per D-016) unless that transaction id is already stored, then `UpdatePlayerStatus(id, "signed")`. No signing found → change nothing (never set a player back to unsigned).
+  - Wire it in: `StartBackgroundSync` runs it right after `RunStatsSync` on each cycle, and `cmd/sync` runs it after the stats sync (D-018). A failure for one player logs a warning and continues, like the stats sync.
+  - **Schema:** add `transaction_id INTEGER` and `minor_league INTEGER NOT NULL DEFAULT 0` to `contracts`, plus `CREATE UNIQUE INDEX IF NOT EXISTS idx_contracts_transaction ON contracts(transaction_id)`. Gotcha (verified): SQLite cannot `ALTER TABLE ... ADD COLUMN ... UNIQUE` — add the plain column, then create the unique index in `Migrate`. `addedColumns` in `internal/db/db.go` only knows the `players` table today; extend it to take a table name.
+  - **Model/store:** `Contract.Years`, `TotalValue` and `AAV` become nullable (`*int`/`*float64`) and the store scans them with `sql.Null*` — scanning `NULL` into a plain `int` errors, and today's scans assume non-null. Add `TransactionID` and `MinorLeague` fields. Store function e.g. `SaveSigning(playerID, c *models.Contract) error` using `INSERT ... ON CONFLICT(transaction_id) DO NOTHING` — the SQL lives in `store.go` like everything else.
+  - **UI:** Dashboard badge stays `Signed (Team)`; add `· minor league` when flagged. Player page: "Terms: not reported" when years/value are `NULL` (no `$0M`), plus signed date and the minor-league label. Use the `stat` template func for nullable numbers (D-014), or add funcs to `funcMap` in `cmd/server/main.go`.
+- **Out of scope:** contract terms (P3-004), trades/releases after signing, extensions signed before free agency, and players who aren't free agents. The `negotiating` status stays manual.
+- **Acceptance criteria:**
+  - [ ] A tracked player with an `SFA` in the offseason window is marked `signed` with a contract row: team + date, terms `NULL`
+  - [ ] Re-signing with the old team is detected the same way
+  - [ ] Minor-league deals are marked signed and labeled "minor league" on dashboard and player page
+  - [ ] Running the job repeatedly creates exactly one contract row per signing
+  - [ ] A player with no `SFA` keeps their current status (including a manually set one)
+  - [ ] Existing databases get the new `contracts` columns and index without being deleted
+  - [ ] Player page shows "not reported" for terms — never `$0M` or `0` years
+  - [ ] Tests (fake API via `httptest`, never the live API — D-008): signing detected; re-sign with old team; minor-league flag; latest of two `SFA`s wins; `DFA`-only → no change; idempotent second run; offseason start for Sep 30 / Oct 1 / Jan 15; migration on an old `contracts` table; template renders "not reported"
+  - [ ] Manual live spot check, noted in the PR: with the window set to 2024-10-01 → 2025-03-01, Soto → New York Mets on 2024-12-11 and Alonso → New York Mets on 2025-02-12
+- **Open questions:** none
+- **Decisions:** D-015, D-016, D-017, D-018
+- **Files:** `internal/jobs/contract_watcher.go` (new), `internal/jobs/contract_watcher_test.go` (new), `internal/jobs/stats_sync.go` (wire-in), `cmd/sync/main.go`, `internal/db/schema.sql`, `internal/db/db.go`, `internal/models/models.go`, `internal/store/store.go`, `web/templates/dashboard.html`, `web/templates/player_detail.html`
 
-### [NOT STARTED] Contract comparison (predicted vs actual)
+### [BLOCKED] Contract comparison (predicted vs actual)
 - **ID:** P3-002
+- **Blocked on:** P3-004 — the transactions API has no years or dollars, so there's nothing to compare against yet (D-016)
 - **Problem:** Predictions exist but there's no way to score them
 - **Impact:** Can't improve predictions over time
 - **Approach:** When a player signs, compare actual contract to prediction. Calculate error (years off, AAV off). Store accuracy metrics.
@@ -182,6 +209,17 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Impact:** Missing context for contract analysis
 - **Approach:** Track team payroll totals, luxury tax thresholds. Update as contracts are logged. Show team payroll summary on dashboard.
 - **Files:** `internal/db/schema.sql`, `internal/store/store.go`, `web/templates/dashboard.html` (or new team view)
+
+### [GROOMING] Source contract terms (years, total value, AAV)
+- **ID:** P3-004
+- **Problem:** P3-001 records who signed where and when, but the MLB transactions API has no contract terms
+- **Impact:** Contract cards show "not reported"; P3-002 (prediction scoring) and P3-003 (payroll) can't work without dollars
+- **Approach:** TBD
+- **Open questions:**
+  - Source: manual `contract:` block per player in `players.yaml`, Spotrac/Cot's scraping, or parsing news (Phase 2)?
+  - If manual: should YAML terms override or only fill in auto-detected contracts?
+- **Decisions:** D-016
+- **Files:** TBD
 
 ---
 
