@@ -17,7 +17,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
 
-| P3-004 | Track contract expiration dates | IN PROGRESS | feature/P3-004-contract-expiry | D-020 |
+| P3-004 | Track contract expiration dates | IN REVIEW | feature/P3-004-contract-expiry | D-020 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
