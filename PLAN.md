@@ -16,7 +16,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-004 | Sync player age | DONE | #1 | D-006 |
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
-| P3-001 | Auto-detect signings via MLB Transactions API | IN PROGRESS | feature/P3-001-contract-watcher | D-015, D-016, D-017, D-018, D-019 |
+| P3-001 | Auto-detect signings via MLB Transactions API | IN REVIEW | feature/P3-001-contract-watcher | D-015, D-016, D-017, D-018, D-019 |
 
 All other cards (Phases 2, 4–7) are NOT STARTED. P1-005 is GROOMING.
 
