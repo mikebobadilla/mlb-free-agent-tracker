@@ -71,6 +71,9 @@
         {{end}}
 
         <h2>Status</h2>
+        {{if .Player.ContractExpiry}}
+        <p><strong>Contract Expires:</strong> {{.Player.ContractExpiry}}</p>
+        {{end}}
         {{if .Contract}}
         <div class="contract-card">
             <p><strong>Signed with:</strong> {{.Contract.Team}}</p>

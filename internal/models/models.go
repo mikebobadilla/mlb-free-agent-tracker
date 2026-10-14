@@ -3,17 +3,18 @@ package models
 import "time"
 
 type Player struct {
-	ID       int64   `yaml:"-"`
-	Name     string  `yaml:"name"`
-	Position string  `yaml:"position"`
-	MLBID    int64   `yaml:"mlb_id"`
-	PrevTeam string  `yaml:"prev_team"`
+	ID       int64  `yaml:"-"`
+	Name     string `yaml:"name"`
+	Position string `yaml:"position"`
+	MLBID    int64  `yaml:"mlb_id"`
+	PrevTeam string `yaml:"prev_team"`
 
 	// Synced fields
-	Age       int       `yaml:"-"`
-	Status    string    `yaml:"-"` // unsigned | negotiating | signed
-	Season    int       `yaml:"-"` // season the stats are from; 0 if none
-	WAR       float64   `yaml:"-"`
+	Age            int     `yaml:"-"`
+	Status         string  `yaml:"-"` // unsigned | negotiating | signed
+	Season         int     `yaml:"-"` // season the stats are from; 0 if none
+	ContractExpiry int     `yaml:"-"` // year the contract expires; 0 if unknown
+	WAR            float64 `yaml:"-"`
 
 	// Hitting; nil when not set
 	OBP *float64 `yaml:"-"`
