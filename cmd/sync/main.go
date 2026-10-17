@@ -50,5 +50,23 @@ func main() {
 		log.Fatalf("Stats sync failed: %v", err)
 	}
 
+	// Set contract expiry for players with expiring contracts.
+	// This is a one-time setup step — safe to run on every sync.
+	expiryPlayers := map[int64]int{
+		670970: 2026, // Adrian Morejon
+		650633: 2026, // Michael King
+		664034: 2026, // Ty France
+	}
+	for mlbID, year := range expiryPlayers {
+		p, err := s.GetPlayerByMLBID(mlbID)
+		if err != nil {
+			log.Printf("Failed to get player %d for contract expiry: %v", mlbID, err)
+			continue
+		}
+		if err := s.SetContractExpiry(p.ID, year); err != nil {
+			log.Printf("Failed to set contract expiry for %d: %v", mlbID, err)
+		}
+	}
+
 	log.Println("Sync complete")
 }

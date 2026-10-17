@@ -197,7 +197,7 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
   - [x] Player detail page shows contract expiry year
   - [x] Dashboard shows contract expiry year
   - [x] 3 new players added to `players.yaml` (Morejon, King, France)
-  - [ ] `contract_expiry` set in DB for the 3 new players
+  - [x] `contract_expiry` set in DB for the 3 new players
 - **Open questions:** (empty)
 - **Decisions:** D-020
 - **Files:** `internal/db/schema.sql`, `internal/db/db.go`, `internal/store/store.go`, `web/templates/dashboard.html`, `web/templates/player_detail.html`, `config/players.yaml`
