@@ -16,7 +16,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-004 | Sync player age | DONE | #1 | D-006 |
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
-| P3-005 | Rewrite backend and frontend in Node.js | IN PROGRESS | feature/P3-005-node-rewrite | D-021 |
+| P3-005 | Rewrite backend and frontend in Node.js | IN REVIEW | feature/P3-005-node-rewrite | D-021 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -184,7 +184,7 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Approach:** Track team payroll totals, luxury tax thresholds. Update as contracts are logged. Show team payroll summary on dashboard.
 - **Files:** `internal/db/schema.sql`, `internal/store/store.go`, `web/templates/dashboard.html` (or new team view)
 
-### [IN PROGRESS] Rewrite backend and frontend in Node.js
+### [IN REVIEW] Rewrite backend and frontend in Node.js
 - **ID:** P3-005
 - **Branch / PR:** feature/P3-005-node-rewrite / —
 - **Problem:** The maintainer does not understand Go and wants the tracker built in Node.js with Prisma.
