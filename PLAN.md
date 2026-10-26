@@ -16,6 +16,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-004 | Sync player age | DONE | #1 | D-006 |
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
+| P3-005 | Rewrite backend and frontend in Node.js | IN PROGRESS | feature/P3-005-node-rewrite | D-021 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -182,6 +183,24 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Impact:** Missing context for contract analysis
 - **Approach:** Track team payroll totals, luxury tax thresholds. Update as contracts are logged. Show team payroll summary on dashboard.
 - **Files:** `internal/db/schema.sql`, `internal/store/store.go`, `web/templates/dashboard.html` (or new team view)
+
+### [IN PROGRESS] Rewrite backend and frontend in Node.js
+- **ID:** P3-005
+- **Branch / PR:** feature/P3-005-node-rewrite / —
+- **Problem:** The maintainer does not understand Go and wants the tracker built in Node.js with Prisma.
+- **Impact:** The Go codebase blocks further work for the maintainer; the project has rough edges.
+- **Approach:** Full rewrite of the app in TypeScript + Express + Prisma (SQLite) with a React SPA + JSON API frontend. Preserve behavior: curated YAML config, stats sync job, contract watcher, dashboard, player detail, API endpoints, tests.
+- **Acceptance criteria:**
+  - [ ] Express + TypeScript + Prisma backend boots and serves the JSON API
+  - [ ] Prisma schema mirrors the Go schema (players, contracts, rumors, predictions)
+  - [ ] Stats sync job runs (rate-limited, season fallback) and writes stats
+  - [ ] Contract watcher runs and detects signings
+  - [ ] React SPA serves dashboard and player detail via the API
+  - [ ] Tests use vitest + supertest (replacing go vet/go test)
+  - [ ] Go code removed from branch at end of rewrite
+- **Open questions:** (empty)
+- **Decisions:** D-021
+- **Files:** `package.json`, `prisma/schema.prisma`, `src/**`, `web/**`, `config/players.yaml`, `AGENTS.md`, `DECISIONS.md`
 
 ---
 

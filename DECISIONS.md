@@ -141,6 +141,15 @@ it belongs here.
 - **Alternatives:** Convert to true innings on sync and back for display — two conversions for no benefit.
 - **Consequences:** Anyone doing math on `ip` must use outs instead (noted in AGENTS.md Known Issues).
 
+## D-021 — Rewrite the app in TypeScript + Express + Prisma + SQLite, frontend in React
+- **Date:** 2026-10-25
+- **Status:** ACCEPTED
+- **Cards:** P3-005
+- **Context:** The maintainer does not understand Go and wants the tracker built in Node.js with Prisma; the Go codebase has rough edges and the project is an LLM-test scaffold.
+- **Decision:** Full rewrite of the app in TypeScript + Express + Prisma (SQLite) with a React SPA + JSON API frontend. Preserve behavior (curated YAML config, stats sync job, contract watcher, dashboard, player detail, API). Replace Go entirely on branch `feature/P3-005-node-rewrite`; Go code is deleted on this branch once the rewrite reaches parity.
+- **Alternatives:** Stay in Go; Express + plain JavaScript; Next.js; EJS server-rendered UI; keep Go alongside for reference.
+- **Consequences:** The rewrite must port all behavior (sync, watcher, store, jobs, API, tests, config). Prisma + SQLite keeps a single-file database story. React SPA moves UI state/fetching into the client. The Go implementation is dropped rather than parallel-run.
+
 ## D-014 — Nullable stats render through template funcs, never `printf`
 - **Date:** 2026-10-11
 - **Status:** ACCEPTED
