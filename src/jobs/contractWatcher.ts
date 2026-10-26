@@ -56,7 +56,7 @@ export async function runContractWatch(players: PlayerConfig[]): Promise<void> {
         years: null,
         totalValue: null,
         aav: null,
-        signedDate: latest.date,
+        signedDate: latest.date ? new Date(latest.date) : null,
       },
     });
 
