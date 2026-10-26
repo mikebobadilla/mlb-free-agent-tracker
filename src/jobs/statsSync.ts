@@ -112,7 +112,11 @@ export async function runStatsSync(players: PlayerConfig[]): Promise<void> {
     const age = ageData.people?.[0]?.currentAge ?? 0;
 
     await new Promise((r) => setTimeout(r, requestDelayMs));
-    const stats = await fetchSeasonStats(p.mlb_id, season);
+    let stats = await fetchSeasonStats(p.mlb_id, season);
+    if (!stats) {
+      // Offseason fallback: try the previous season.
+      stats = await fetchSeasonStats(p.mlb_id, season - 1);
+    }
 
     await upsertPlayer({
       mlbId: p.mlb_id,
