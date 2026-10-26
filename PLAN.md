@@ -191,13 +191,13 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Impact:** The Go codebase blocks further work for the maintainer; the project has rough edges.
 - **Approach:** Full rewrite of the app in TypeScript + Express + Prisma (SQLite) with a React SPA + JSON API frontend. Preserve behavior: curated YAML config, stats sync job, contract watcher, dashboard, player detail, API endpoints, tests.
 - **Acceptance criteria:**
-  - [ ] Express + TypeScript + Prisma backend boots and serves the JSON API
-  - [ ] Prisma schema mirrors the Go schema (players, contracts, rumors, predictions)
-  - [ ] Stats sync job runs (rate-limited, season fallback) and writes stats
-  - [ ] Contract watcher runs and detects signings
-  - [ ] React SPA serves dashboard and player detail via the API
-  - [ ] Tests use vitest + supertest (replacing go vet/go test)
-  - [ ] Go code removed from branch at end of rewrite
+  - [x] Express + TypeScript + Prisma backend boots and serves the JSON API
+  - [x] Prisma schema mirrors the Go schema (players, contracts, rumors, predictions)
+  - [x] Stats sync job runs (rate-limited, season fallback) and writes stats
+  - [x] Contract watcher runs and detects signings
+  - [x] React SPA serves dashboard and player detail via the API
+  - [x] Tests use vitest + supertest (replacing go vet/go test)
+  - [x] Go code removed from branch at end of rewrite
 - **Open questions:** (empty)
 - **Decisions:** D-021
 - **Files:** `package.json`, `prisma/schema.prisma`, `src/**`, `web/**`, `config/players.yaml`, `AGENTS.md`, `DECISIONS.md`
