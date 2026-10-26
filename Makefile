@@ -1,16 +1,11 @@
-GOOS = $(shell go env GOOS)
-GOARCH = $(shell go env GOARCH)
-
-.PHONY: run server sync build clean
-
 server:
-	go run ./cmd/server
+	npm run dev:server
 
 sync:
-	go run ./cmd/sync
+	npm run sync
 
 build:
-	go build -o bin/tracker-$(GOOS)-$(GOARCH) ./cmd/server
+	npm run build
 
 clean:
-	rm -rf bin/ data/tracker.db
+	rm -rf node_modules dist data

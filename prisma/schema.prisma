@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id               Int      @id @default(autoincrement())
+  mlbId            Int      @unique
+  name             String
+  position         String
+  age              Int?
+  prevTeam         String?
+  war              Float?
+  season           Int?
+  status           String   @default("unsigned")
+  updatedAt        DateTime @default(now())
+  obp              Float?
+  slg              Float?
+  ops              Float?
+  era              Float?
+  whip             Float?
+  ip               Float?
+  k9               Float?
+  fip              Float?
+  contractExpiry  Int?
+
+  contracts   Contract[]
+  rumors      Rumor[]
+  predictions Prediction[]
+}
+
+model Contract {
+  id          Int      @id @default(autoincrement())
+  playerId   Int
+  player     Player   @relation(fields: [playerId], references: [id])
+  team       String
+  years      Int?
+  totalValue Float?
+  aav        Float?
+  signedDate DateTime?
+  createdAt  DateTime @default(now())
+}
+
+model Rumor {
+  id          Int      @id @default(autoincrement())
+  playerId   Int
+  player     Player   @relation(fields: [playerId], references: [id])
+  linkedTeam String?
+  source     String?
+  confidence Int      @default(3)
+  datePosted DateTime?
+  createdAt  DateTime @default(now())
+}
+
+model Prediction {
+  id             Int      @id @default(autoincrement())
+  playerId       Int
+  player         Player   @relation(fields: [playerId], references: [id])
+  predictedTeam String?
+  predictedYears Int?
+  predictedAav Float?
+  confidence   Int      @default(3)
+  notes         String?
+  createdAt     DateTime @default(now())
+}

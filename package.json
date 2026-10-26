@@ -1,0 +1,37 @@
+{
+  "name": "mlb-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MLB Free Agent Tracker",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "tsx src/server/index.ts",
+    "build": "vite build",
+    "start": "tsx src/server/index.ts",
+    "sync": "tsx src/jobs/runSync.ts",
+    "test": "vitest run",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.0",
+    "express": "^4.21.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/supertest": "^7.2.1",
+    "@vitejs/plugin-react": "^4.3.0",
+    "prisma": "^6.16.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "supertest": "^7.3.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.2",
+    "vitest": "^2.1.0"
+  }
+}
