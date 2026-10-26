@@ -18,6 +18,8 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
 | P3-005 | Rewrite backend and frontend in Node.js | IN REVIEW | feature/P3-005-node-rewrite | D-021 |
 
+| P3-004 | Track contract expiration dates | IN REVIEW | feature/P3-004-contract-expiry | D-020 |
+
 All other cards (Phases 2–7) are NOT STARTED.
 
 ## Status Legend
@@ -200,7 +202,24 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
   - [x] Go code removed from branch at end of rewrite
 - **Open questions:** (empty)
 - **Decisions:** D-021
-- **Files:** `package.json`, `prisma/schema.prisma`, `src/**`, `web/**`, `config/players.yaml`, `AGENTS.md`, `DECISIONS.md`
+- **Files:** `package.json`, `prisma/schema.prisma`, `src/**`, `config/players.yaml`, `AGENTS.md`, `DECISIONS.md`
+
+### [READY] Track contract expiration dates
+- **ID:** P3-004
+- **Branch / PR:** `feature/P3-004-contract-expiry` / —
+- **Problem:** No way to know which player contracts are expiring this season
+- **Impact:** Missing context for understanding when players become free agents
+- **Approach:** Add a `contract_expiry` column to the `players` table (INTEGER, nullable). Store the expiration year (e.g., `2026`). Set via a store function (`SetContractExpiry(playerID, year)`). Display on the player detail page and dashboard. Add 3 new players to `players.yaml` whose contracts expire after the 2026 season.
+- **Acceptance criteria:**
+  - [x] New `contract_expiry` column in `players` table (nullable INTEGER)
+  - [x] `SetContractExpiry(playerID, year)` store function
+  - [x] Player detail page shows contract expiry year
+  - [x] Dashboard shows contract expiry year
+  - [x] 3 new players added to `players.yaml` (Morejon, King, France)
+  - [x] `contract_expiry` set in DB for the 3 new players
+- **Open questions:** (empty)
+- **Decisions:** D-020
+- **Files:** `prisma/schema.prisma`, `src/db/`, `src/store/`, `src/pages/`, `config/players.yaml`
 
 ---
 
