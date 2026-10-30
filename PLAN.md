@@ -1,6 +1,6 @@
 # MLB Free Agent Tracker — Feature Plan
 
-Last updated: 2026-10-11
+Last updated: 2026-10-29
 
 Decisions behind these cards are logged in [DECISIONS.md](DECISIONS.md).
 
@@ -16,9 +16,8 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-004 | Sync player age | DONE | #1 | D-006 |
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
-| P3-005 | Rewrite backend and frontend in Node.js | IN REVIEW | feature/P3-005-node-rewrite | D-021 |
-
 | P3-004 | Track contract expiration dates | IN REVIEW | feature/P3-004-contract-expiry | D-020 |
+| P3-005 | Rewrite backend and frontend in Node.js | IN REVIEW | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -38,7 +37,7 @@ All other cards (Phases 2–7) are NOT STARTED.
 
 1. **Groom:** fill in the card's Approach, Acceptance criteria and Open questions. Every answered question becomes an entry in DECISIONS.md. Card moves to READY when there are no open questions.
 2. **Build:** create or reuse a `feature/<desc>` branch in a git worktree (D-001). Set the card to IN PROGRESS and fill in Branch.
-3. **Test:** add tests for the change; `go vet ./...` and `go test ./...` must pass (D-008).
+3. **Test:** add tests for the change; `npm test` must pass (D-008, D-022).
 4. **Push:** commit with the card ID in the message, push, and set the card to IN REVIEW. The PR is opened and merged by a human.
 5. **Done:** after merge, set the card to DONE.
 
@@ -188,23 +187,23 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 
 ### [IN REVIEW] Rewrite backend and frontend in Node.js
 - **ID:** P3-005
-- **Branch / PR:** feature/P3-005-node-rewrite / —
+- **Branch / PR:** feature/P3-005-node-rewrite, feature/post-rewrite-fixes / —
 - **Problem:** The maintainer does not understand Go and wants the tracker built in Node.js with Prisma.
 - **Impact:** The Go codebase blocks further work for the maintainer; the project has rough edges.
 - **Approach:** Full rewrite of the app in TypeScript + Express + Prisma (SQLite) with a React SPA + JSON API frontend. Preserve behavior: curated YAML config, stats sync job, contract watcher, dashboard, player detail, API endpoints, tests.
 - **Acceptance criteria:**
   - [x] Express + TypeScript + Prisma backend boots and serves the JSON API
   - [x] Prisma schema mirrors the Go schema (players, contracts, rumors, predictions)
-  - [x] Stats sync job runs (rate-limited, season fallback) and writes stats
+  - [x] Stats sync job runs on startup and every 6 hours (rate-limited, season fallback) and writes stats without resetting status or contract expiry (D-011)
   - [x] Contract watcher runs and detects signings
   - [x] React SPA serves dashboard and player detail via the API
-  - [x] Tests use vitest + supertest (replacing go vet/go test)
+  - [x] Tests use vitest + supertest (replacing go vet/go test), against a throwaway database (D-022)
   - [x] Go code removed from branch at end of rewrite
 - **Open questions:** (empty)
-- **Decisions:** D-021
+- **Decisions:** D-021, D-022
 - **Files:** `package.json`, `prisma/schema.prisma`, `src/**`, `config/players.yaml`, `AGENTS.md`, `DECISIONS.md`
 
-### [READY] Track contract expiration dates
+### [IN REVIEW] Track contract expiration dates
 - **ID:** P3-004
 - **Branch / PR:** `feature/P3-004-contract-expiry` / —
 - **Problem:** No way to know which player contracts are expiring this season
@@ -213,10 +212,10 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Acceptance criteria:**
   - [x] New `contract_expiry` column in `players` table (nullable INTEGER)
   - [x] `SetContractExpiry(playerID, year)` store function
-  - [x] Player detail page shows contract expiry year
+  - [ ] Player detail page shows contract expiry year (done in Go; not ported by P3-005)
   - [x] Dashboard shows contract expiry year
   - [x] 3 new players added to `players.yaml` (Morejon, King, France)
-  - [x] `contract_expiry` set in DB for the 3 new players
+  - [ ] `contract_expiry` set in DB for the 3 new players (done in Go sync CLI; not ported by P3-005)
 - **Open questions:** (empty)
 - **Decisions:** D-020
 - **Files:** `prisma/schema.prisma`, `src/db/`, `src/store/`, `src/pages/`, `config/players.yaml`

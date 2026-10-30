@@ -141,6 +141,24 @@ it belongs here.
 - **Alternatives:** Convert to true innings on sync and back for display — two conversions for no benefit.
 - **Consequences:** Anyone doing math on `ip` must use outs instead (noted in AGENTS.md Known Issues).
 
+## D-014 — Nullable stats render through template funcs, never `printf`
+- **Date:** 2026-10-11
+- **Status:** ACCEPTED
+- **Cards:** P1-002, P1-003
+- **Context:** Verified: the old dashboard rendered ERA as `%!f(*float64=0x...)`, because `printf` in a template doesn't dereference a `*float64`.
+- **Decision:** Template funcs in `cmd/server/main.go`: `stat "<format>" <ptr>` (e.g. ERA `3.20`) and `avg <ptr>` (rate stats without the leading zero, `.908`). Both render `-` when the value is nil. Render tests in `cmd/server/main_test.go` fail if a pointer or format error appears in the output.
+- **Alternatives:** Store stats as plain `float64` and use `0` for "no data" — rejected by D-010.
+- **Consequences:** New stat columns must use these funcs in templates.
+
+## D-020 — Contract expiry is a DB-only year set through the store
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-004
+- **Context:** P3-004 needs each player's contract expiration year. P3-004 cited this entry but it was never written; backfilled on 2026-10-29 from commits `bea9c24` and `c41a161`. (D-015 to D-019 are used by the unmerged P3-001 branches, which is why main skips them.)
+- **Decision:** Store the year as a nullable integer `contract_expiry` on `players`, written only through `SetContractExpiry(playerID, year)`, not via `players.yaml`. The Go sync CLI set 2026 for Morejon, King and France.
+- **Alternatives:** None recorded.
+- **Consequences:** The value exists only in the database, so `make clean` loses it and the stats sync must never overwrite it. The Node rewrite (D-021) did not port the sync-CLI step, so nothing calls `setContractExpiry` on main yet.
+
 ## D-021 — Rewrite the app in TypeScript + Express + Prisma + SQLite, frontend in React
 - **Date:** 2026-10-25
 - **Status:** ACCEPTED
@@ -150,11 +168,11 @@ it belongs here.
 - **Alternatives:** Stay in Go; Express + plain JavaScript; Next.js; EJS server-rendered UI; keep Go alongside for reference.
 - **Consequences:** The rewrite must port all behavior (sync, watcher, store, jobs, API, tests, config). Prisma + SQLite keeps a single-file database story. React SPA moves UI state/fetching into the client. The Go implementation is dropped rather than parallel-run.
 
-## D-014 — Nullable stats render through template funcs, never `printf`
-- **Date:** 2026-10-11
+## D-022 — Tests run against a throwaway SQLite database per test file
+- **Date:** 2026-10-29
 - **Status:** ACCEPTED
-- **Cards:** P1-002, P1-003
-- **Context:** Verified: the old dashboard rendered ERA as `%!f(*float64=0x...)`, because `printf` in a template doesn't dereference a `*float64`.
-- **Decision:** Template funcs in `cmd/server/main.go`: `stat "<format>" <ptr>` (e.g. ERA `3.20`) and `avg <ptr>` (rate stats without the leading zero, `.908`). Both render `-` when the value is nil. Render tests in `cmd/server/main_test.go` fail if a pointer or format error appears in the output.
-- **Alternatives:** Store stats as plain `float64` and use `0` for "no data" — rejected by D-010.
-- **Consequences:** New stat columns must use these funcs in templates.
+- **Cards:** P3-005
+- **Context:** The API tests read `data/tracker.db`, so they passed only where a synced dev database already existed. In a fresh worktree they returned 500. A store test that writes rows would also have changed real data. Separately, vitest picked up the copies of the tests inside `.claude/worktrees/`.
+- **Decision:** vitest `setupFiles` runs `src/test/setupDb.ts`, which creates a temp directory, points `DATABASE_URL` at it and runs `prisma db push --skip-generate` before the test file loads the Prisma client. The directory is deleted after the file finishes. vitest also excludes `.claude/**`.
+- **Alternatives:** A shared test database cleaned between tests couples test files to each other. Mocking Prisma would not exercise the queries.
+- **Consequences:** Each test file adds about half a second for `db push`. Tests start from an empty database and must create the rows they need.
