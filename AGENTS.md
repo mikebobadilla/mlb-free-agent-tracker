@@ -63,7 +63,7 @@ make clean     # Remove node_modules, dist/ and data/ (database)
 - **Planning:** `PLAN.md` holds the cards and a status board — follow its Workflow section and update the board in the same commit as any status change.
 - **Decisions:** Record every non-obvious decision (scope, approach, data source, workflow, or a discovery that changes a card) as a new entry in `DECISIONS.md`. Never delete entries; supersede them.
 - **Tests:** Every change ships with tests. Test API code with vitest + supertest against an in-process Express app, not the live API. `npm test` must pass before pushing.
-- **Git:** Agents may commit and push feature branches. Humans open PRs and merge.
+- **Git:** Agents may commit, push feature branches, and merge them into `main` once `npm test` passes (D-023). PRs are optional.
 - Keep dependencies minimal. npm packages sparingly.
 - Prisma queries live in `src/store/` — don't scatter them across routes.
 - Background jobs go in `src/jobs/` — each job is a standalone function.

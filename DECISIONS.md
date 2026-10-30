@@ -176,3 +176,12 @@ it belongs here.
 - **Decision:** vitest `setupFiles` runs `src/test/setupDb.ts`, which creates a temp directory, points `DATABASE_URL` at it and runs `prisma db push --skip-generate` before the test file loads the Prisma client. The directory is deleted after the file finishes. vitest also excludes `.claude/**`.
 - **Alternatives:** A shared test database cleaned between tests couples test files to each other. Mocking Prisma would not exercise the queries.
 - **Consequences:** Each test file adds about half a second for `db push`. Tests start from an empty database and must create the rows they need.
+
+## D-023 — Agents merge feature branches into main
+- **Date:** 2026-10-29
+- **Status:** ACCEPTED
+- **Cards:** all
+- **Context:** AGENTS.md and the PLAN workflow said humans open PRs and merge. The maintainer said agents can merge to `main` on this project.
+- **Decision:** Feature work still happens on `feature/*` branches in worktrees (D-001). Once `npm test` passes, the agent merges the branch into `main`, pushes, and sets the card to DONE. A PR is optional.
+- **Alternatives:** Keep human-only merges, which leaves finished work sitting on branches.
+- **Consequences:** `npm test` is the only gate before `main`, so the tests have to catch regressions.
