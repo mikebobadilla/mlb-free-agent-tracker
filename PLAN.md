@@ -16,7 +16,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-004 | Sync player age | DONE | #1 | D-006 |
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009, D-024, D-026 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
-| P1-007 | Replace MLB Stats API with openly licensed data | GROOMING | — | D-026 |
+| P1-007 | Replace MLB Stats API with openly licensed data | DONE | feature/retrosheet-stats | D-026, D-027 |
 | P3-004 | Track contract expiration dates | DONE | feature/P3-004-contract-expiry, feature/curated-contracts | D-020, D-025 |
 | P3-005 | Rewrite backend and frontend in Node.js | DONE | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
 | P3-006 | Current contracts with terms | DONE | feature/curated-contracts | D-024, D-025 |
@@ -121,17 +121,21 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Decisions:** D-007, D-009, D-024, D-026
 - **Files:** TBD
 
-### [GROOMING] Replace MLB Stats API with openly licensed data
+### [DONE] Replace MLB Stats API with openly licensed data
 - **ID:** P1-007
+- **Branch / PR:** `feature/retrosheet-stats` / —
 - **Problem:** The MLB Stats API terms allow only "individual, non-commercial, non-bulk use" (D-026); this is a public project
 - **Impact:** The stats sync and contract watcher depend on data the site may not be allowed to republish
-- **Approach:** Retrosheet season totals (summed from its per-game CSVs) for hitting/pitching stats, Chadwick register for MLBAM ↔ Retrosheet ids and birth dates; show the Retrosheet and ODC-By notices on the site (D-026)
-- **Open questions:**
-  - Ask MLBAM for written permission first, or switch outright?
-  - Retrosheet publishes about a month after the season; is showing 2025 stats until then acceptable?
-  - Signing detection has no open source. Keep MLB transactions for detection only, or rely on curated contracts alone?
-- **Decisions:** D-026
-- **Files:** TBD
+- **Approach:** Retrosheet season totals (summed from its per-game CSVs) for hitting/pitching stats, Chadwick register for MLBAM ↔ Retrosheet ids and birth dates, attribution notices in the site footer. MLB transactions are checked once a day, only to detect signings (D-027).
+- **Acceptance criteria:**
+  - [x] Stats for the latest season Retrosheet has published, falling back one season until the new one appears
+  - [x] Age from the Chadwick birth date; ids cached so the register is only read for new players
+  - [x] One sync at startup and every 24 hours: stats, curated contracts, signings
+  - [x] Retrosheet and Chadwick notices plus MLB credit shown on every page
+  - [x] No MLB Stats API calls besides the daily transactions check
+- **Open questions:** (empty)
+- **Decisions:** D-026, D-027
+- **Files:** `src/jobs/statsSync.ts`, `src/jobs/playerIds.ts`, `src/jobs/syncCycle.ts`, `src/csv.ts`, `src/App.tsx`, `prisma/schema.prisma`, `package.json`
 
 ### [DONE] Server startup wipes synced data
 - **ID:** P1-006

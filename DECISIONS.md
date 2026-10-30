@@ -44,7 +44,7 @@ it belongs here.
 
 ## D-003 — Decode MLB stats with a string-or-number `FlexFloat` type
 - **Date:** 2026-10-11
-- **Status:** ACCEPTED (placeholder handling SUPERSEDED by D-010)
+- **Status:** SUPERSEDED by D-027 (stats no longer come from the MLB Stats API; placeholder handling was SUPERSEDED by D-010)
 - **Cards:** P1-001
 - **Context:** Verified against the live API: rate stats like `era`, `whip`, `inningsPitched` are JSON strings (`"3.20"`), so decoding into `float64` failed and every pitcher was dropped from sync.
 - **Decision:** A `FlexFloat` type in `internal/jobs/stats_sync.go` accepts JSON numbers or numeric strings. The API's placeholders for undefined stats (`""`, `"-"`, `".---"`, `"-.--"`, `"*.**"`) decode to `0`.
@@ -53,7 +53,7 @@ it belongs here.
 
 ## D-004 — Show season stats, fall back to the previous season
 - **Date:** 2026-10-11
-- **Status:** ACCEPTED
+- **Status:** SUPERSEDED by D-027 (latest season Retrosheet has published)
 - **Cards:** P1-002
 - **Context:** The sync was storing **career** stats, which are never empty — so the "zeros in the offseason" problem in P1-002 only appears once season stats are shown. For free agency, recent performance matters more than career totals.
 - **Decision:** Sync stats for the current calendar year's season. If the API returns no splits for that season (verified: `"stats": []`), fetch the previous season instead. Store which season the stats came from in a new `season` column and show it in the UI.
@@ -62,7 +62,7 @@ it belongs here.
 
 ## D-005 — Traded players: use the season-total split
 - **Date:** 2026-10-11
-- **Status:** ACCEPTED
+- **Status:** SUPERSEDED by D-027 (Retrosheet game rows are summed across teams, same result)
 - **Cards:** P1-002
 - **Context:** Verified against the live API (Chisholm, 2024): a traded player's season returns a total split (no `team`) followed by one split per team.
 - **Decision:** Prefer the split without a `team`; fall back to the first split if none.
@@ -71,7 +71,7 @@ it belongs here.
 
 ## D-006 — Get age from `/people/{id}`
 - **Date:** 2026-10-11
-- **Status:** ACCEPTED
+- **Status:** SUPERSEDED by D-027 (age from the Chadwick birth date)
 - **Cards:** P1-004
 - **Context:** Age was read from the stats response, which doesn't include it, so age was always 0.
 - **Decision:** Fetch `currentAge` from `/people/{id}` (one extra rate-limited request per player).
@@ -98,7 +98,7 @@ it belongs here.
 
 ## D-009 — Phase 1 stats come from the MLB Stats API only; FIP is computed
 - **Date:** 2026-10-11
-- **Status:** ACCEPTED
+- **Status:** SUPERSEDED by D-027 (stats from Retrosheet; FIP is still computed the same way)
 - **Cards:** P1-003, P1-005
 - **Context:** Of the stats P1-003 asked for, WAR, wRC+ and FIP are not in the MLB Stats API.
 - **Decision:** P1-003 ships what the API provides (OBP, SLG, OPS, WHIP, IP, K/9) and computes FIP from counting stats: `FIP = (13·HR + 3·(BB+HBP) − 2·K) / IP + C`. WAR and wRC+ move to P1-005, which stays in GROOMING until a data source is chosen.
@@ -206,7 +206,7 @@ it belongs here.
 
 ## D-026 — MLB Stats API terms restrict public use; open replacement identified
 - **Date:** 2026-10-29
-- **Status:** REVISIT
+- **Status:** SUPERSEDED by D-027
 - **Cards:** P1-007, P1-005
 - **Context:** Every MLB Stats API response points to http://gdx.mlb.com/components/copyright.txt: "Only individual, non-commercial, non-bulk use of the Materials is permitted and any other use of the Materials is prohibited without prior written authorization from MLBAM." A public site arguably isn't "individual" use. Researched open alternatives:
   - Retrosheet allows "any desired use" if a fixed notice is shown prominently. It publishes per-game CSVs (no season tables) about a month after the season: 2024 on 2024-12-03, 2025 on 2025-11-27. 2026 isn't out yet.
@@ -216,3 +216,24 @@ it belongs here.
 - **Decision:** Keep the MLB Stats API for now and plan the replacement as P1-007 (Retrosheet stats + Chadwick ids/birth dates, with the required attribution notices).
 - **Alternatives:** Ask MLBAM for written permission; limit the API to change detection only.
 - **Consequences:** Open sources lag the season by about a month, so the dashboard would show 2025 stats until Retrosheet publishes 2026. The contract watcher still depends on MLB transactions, which have no open equivalent.
+
+## D-027 — Stats from Retrosheet + Chadwick; MLB transactions checked once a day
+- **Date:** 2026-10-29
+- **Status:** ACCEPTED
+- **Cards:** P1-007
+- **Context:** D-026 found that MLB Stats API terms don't clearly allow a public site. The maintainer chose to switch stats to Retrosheet and check MLB transactions nightly.
+- **Decision:**
+  - **Stats:** download `https://www.retrosheet.org/downloads/<season>/<season>csvs.zip` (~10 MB) for the last completed season (`upcomingSeason − 1`), falling back one season while Retrosheet hasn't published it (on 2026-10-29: 2026 → 404, 2025 used). Sum regular-season `value` rows per player from `batting.csv`/`pitching.csv` and compute OBP, SLG, OPS, ERA, WHIP, IP (baseball notation), K/9 and FIP (fixed constant 3.1). Checked against the MLB API for 2025: Soto .396/.525/.921 and Snell 61.1 IP, 2.35 ERA, 1.26 WHIP, 10.57 K/9 match exactly.
+  - **IDs and age:** read Retrosheet ids and birth dates from the Chadwick register, keyed by MLB id, only for players missing them, and cache them on `Player.retroId`/`birthDate`. Age is computed from the birth date.
+  - **Schedule:** one cycle runs at startup and then every 24 hours: stats, then curated contracts, then the transactions check. That check is the only remaining MLB Stats API call: 11 requests a day, used to detect signings.
+  - **Attribution:** the site footer shows the Retrosheet notice word for word, the ODC-By notice for Chadwick, and credits MLB Advanced Media for signing dates.
+  - New dependency: `fflate` for unzipping, with no dependencies of its own.
+- **Alternatives:**
+  - Lahman: share-alike, lags by months, no MLB ids.
+  - Ask MLBAM for permission: still possible, and would let us drop the remaining transactions check.
+  - Rely only on curated contracts with no MLB calls at all.
+- **Consequences:**
+  - Stats show the last completed season Retrosheet has published, never the season in progress.
+  - The nightly transactions check still falls under MLB's "individual, non-commercial, non-bulk use" terms. It's limited to detecting signings and showing team and date, but it isn't explicitly permitted.
+  - The first sync downloads up to 16 Chadwick files (~4 MB each); later syncs skip them unless a new player is added.
+  - The MLB player-stats code (FlexFloat, `/people` age lookup) is gone.

@@ -1,153 +1,146 @@
-import { upsertPlayer } from "../store/playerStore";
+import { strFromU8, unzipSync } from "fflate";
 import type { PlayerConfig } from "../config/loadPlayers";
+import { upcomingSeason } from "../contracts";
+import { parseCsv } from "../csv";
+import { getKnownPlayerIds, upsertPlayer } from "../store/playerStore";
+import { lookupPlayerIds, type PlayerIds } from "./playerIds";
 
-const mlbAPIBase = "https://statsapi.mlb.com/api/v1";
-const requestDelayMs = 200;
-const statsSyncIntervalMs = 6 * 60 * 60 * 1000;
+// Retrosheet: free to use with its notice shown on the site (D-027).
+const retrosheetBase = "https://www.retrosheet.org/downloads";
 const fipConstant = 3.1;
 
-interface FlexFloat {
-  value: number;
-  valid: boolean;
-}
-
-function parseFlex(v: unknown): FlexFloat {
-  if (typeof v === "number" && !Number.isNaN(v)) return { value: v, valid: true };
-  if (typeof v === "string") {
-    const s = v.trim();
-    if (s === "" || s === "-" || s === ".---" || s === "-.--" || s === "*.**") {
-      return { value: 0, valid: false };
-    }
-    const n = Number(s);
-    if (!Number.isNaN(n)) return { value: n, valid: true };
-  }
-  return { value: 0, valid: false };
-}
-
-function flexPtr(f: FlexFloat): number | null {
-  return f.valid ? f.value : null;
-}
-
-async function getJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`MLB API returned ${res.status}`);
-  return (await res.json()) as T;
-}
-
-interface SeasonStats {
-  season: number;
-  war: number;
+export interface SeasonStats {
   obp: number | null;
   slg: number | null;
   ops: number | null;
   era: number | null;
   whip: number | null;
-  ip: number | null;
+  ip: number | null; // baseball notation: 42.2 = 42⅔ innings (D-013)
   k9: number | null;
   fip: number | null;
 }
 
-interface StatsSplit {
-  team?: { name?: string } | null;
-  stat?: Record<string, unknown>;
+interface Totals {
+  pa: number; ab: number; h: number; d: number; t: number; hr: number; sf: number; hbp: number; w: number;
+  outs: number; er: number; pH: number; pW: number; pHbp: number; pHr: number; k: number;
 }
 
-interface StatsResponse {
-  stats?: Array<{
-    type?: { displayName?: string };
-    group?: { displayName?: string };
-    splits?: StatsSplit[];
-  }>;
-}
+const zeroTotals = (): Totals => ({
+  pa: 0, ab: 0, h: 0, d: 0, t: 0, hr: 0, sf: 0, hbp: 0, w: 0,
+  outs: 0, er: 0, pH: 0, pW: 0, pHbp: 0, pHr: 0, k: 0,
+});
 
-async function fetchSeasonStats(mlbId: number, season: number): Promise<SeasonStats | null> {
-  const url = `${mlbAPIBase}/people/${mlbId}/stats?stats=season&group=hitting,pitching&season=${season}`;
-  const resp = await getJSON<StatsResponse>(url);
-  let result: SeasonStats | null = null;
+/** Regular-season totals per Retrosheet id, summed from per-game rows (all teams). */
+export function seasonStats(battingCsv: string, pitchingCsv: string, retroIds: Set<string>): Map<string, SeasonStats> {
+  const totals = new Map<string, Totals>();
+  const totalsFor = (id: string) => {
+    let t = totals.get(id);
+    if (!t) totals.set(id, (t = zeroTotals()));
+    return t;
+  };
 
-  for (const statGroup of resp.stats ?? []) {
-    if (statGroup.type?.displayName !== "season") continue;
-    let idx = -1;
-    const splits = statGroup.splits ?? [];
-    for (let i = 0; i < splits.length; i++) {
-      if (splits[i].team == null) { idx = i; break; }
-    }
-    if (idx === -1 && splits.length > 0) idx = 0;
-    if (idx === -1) continue;
-    const stat = (statGroup.splits![idx].stat ?? {}) as Record<string, unknown>;
+  const bat = parseCsv(battingCsv);
+  const [bId, bType, bStat] = ["id", "gametype", "stattype"].map(bat.col);
+  const bCols = ["b_pa", "b_ab", "b_h", "b_d", "b_t", "b_hr", "b_sf", "b_hbp", "b_w"].map(bat.col);
+  for (const r of bat.rows) {
+    if (!retroIds.has(r[bId]) || r[bType] !== "regular" || r[bStat] !== "value") continue;
+    const t = totalsFor(r[bId]);
+    const [pa, ab, h, d, tr, hr, sf, hbp, w] = bCols.map((c) => Number(r[c]) || 0);
+    Object.assign(t, {
+      pa: t.pa + pa, ab: t.ab + ab, h: t.h + h, d: t.d + d, t: t.t + tr,
+      hr: t.hr + hr, sf: t.sf + sf, hbp: t.hbp + hbp, w: t.w + w,
+    });
+  }
 
-    if (!result) {
-      result = { season, war: 0, obp: null, slg: null, ops: null, era: null, whip: null, ip: null, k9: null, fip: null };
-    }
-    const group = statGroup.group?.displayName;
-    if (group === "hitting") {
-      const war = parseFlex(stat.war);
-      result.war = war.value;
-      result.obp = flexPtr(parseFlex(stat.obp));
-      result.slg = flexPtr(parseFlex(stat.slg));
-      result.ops = flexPtr(parseFlex(stat.ops));
-    } else if (group === "pitching") {
-      result.era = flexPtr(parseFlex(stat.era));
-      result.whip = flexPtr(parseFlex(stat.whip));
-      result.ip = flexPtr(parseFlex(stat.ip));
-      result.k9 = flexPtr(parseFlex(stat.strikeoutsPer9Inn));
-      const outs = typeof stat.outs === "number" ? stat.outs : 0;
-      const hr = typeof stat.homeRuns === "number" ? stat.homeRuns : 0;
-      const bb = typeof stat.baseOnBalls === "number" ? stat.baseOnBalls : 0;
-      const hbp = typeof stat.hitByPitch === "number" ? stat.hitByPitch : 0;
-      const k = typeof stat.strikeOuts === "number" ? stat.strikeOuts : 0;
-      result.fip = outs > 0 ? (13 * hr + 3 * (bb + hbp) - 2 * k) / (outs / 3) + fipConstant : null;
-    }
+  const pit = parseCsv(pitchingCsv);
+  const [pId, pType, pStat] = ["id", "gametype", "stattype"].map(pit.col);
+  const pCols = ["p_ipouts", "p_er", "p_h", "p_w", "p_hbp", "p_hr", "p_k"].map(pit.col);
+  for (const r of pit.rows) {
+    if (!retroIds.has(r[pId]) || r[pType] !== "regular" || r[pStat] !== "value") continue;
+    const t = totalsFor(r[pId]);
+    const [outs, er, h, w, hbp, hr, k] = pCols.map((c) => Number(r[c]) || 0);
+    Object.assign(t, {
+      outs: t.outs + outs, er: t.er + er, pH: t.pH + h, pW: t.pW + w,
+      pHbp: t.pHbp + hbp, pHr: t.pHr + hr, k: t.k + k,
+    });
+  }
+
+  const result = new Map<string, SeasonStats>();
+  for (const [id, t] of totals) {
+    const obpDen = t.ab + t.w + t.hbp + t.sf;
+    const obp = t.pa > 0 && obpDen > 0 ? (t.h + t.w + t.hbp) / obpDen : null;
+    const slg = t.pa > 0 && t.ab > 0 ? (t.h + t.d + 2 * t.t + 3 * t.hr) / t.ab : null;
+    const innings = t.outs / 3;
+    const pitched = t.outs > 0;
+    result.set(id, {
+      obp,
+      slg,
+      ops: obp != null && slg != null ? obp + slg : null,
+      era: pitched ? (9 * t.er) / innings : null,
+      whip: pitched ? (t.pW + t.pH) / innings : null,
+      ip: pitched ? Math.floor(t.outs / 3) + (t.outs % 3) / 10 : null,
+      k9: pitched ? (9 * t.k) / innings : null,
+      fip: pitched ? (13 * t.pHr + 3 * (t.pW + t.pHbp) - 2 * t.k) / innings + fipConstant : null,
+    });
   }
   return result;
 }
 
-export async function runStatsSync(players: PlayerConfig[]): Promise<void> {
-  const season = new Date().getFullYear();
-  for (let i = 0; i < players.length; i++) {
-    const p = players[i];
-    if (i > 0) await new Promise((r) => setTimeout(r, requestDelayMs));
+/** The season's batting and pitching CSVs, or null if Retrosheet hasn't published it yet. */
+async function fetchRetrosheetSeason(season: number): Promise<{ batting: string; pitching: string } | null> {
+  const res = await fetch(`${retrosheetBase}/${season}/${season}csvs.zip`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Retrosheet returned ${res.status} for ${season}`);
+  const names = [`${season}batting.csv`, `${season}pitching.csv`];
+  const files = unzipSync(new Uint8Array(await res.arrayBuffer()), { filter: (f) => names.includes(f.name) });
+  const [batting, pitching] = names.map((n) => files[n]);
+  if (!batting || !pitching) throw new Error(`Retrosheet ${season} zip is missing ${names.join(" or ")}`);
+  return { batting: strFromU8(batting), pitching: strFromU8(pitching) };
+}
 
-    const ageRes = await fetch(`${mlbAPIBase}/people/${p.mlb_id}`);
-    const ageData = (await ageRes.json()) as { people?: Array<{ currentAge?: number }> };
-    const age = ageData.people?.[0]?.currentAge ?? 0;
+function ageOn(birth: Date, today: Date): number {
+  const beforeBirthday =
+    today.getUTCMonth() < birth.getUTCMonth() ||
+    (today.getUTCMonth() === birth.getUTCMonth() && today.getUTCDate() < birth.getUTCDate());
+  return today.getUTCFullYear() - birth.getUTCFullYear() - (beforeBirthday ? 1 : 0);
+}
 
-    await new Promise((r) => setTimeout(r, requestDelayMs));
-    let stats = await fetchSeasonStats(p.mlb_id, season);
-    if (!stats) {
-      // Offseason fallback: try the previous season.
-      stats = await fetchSeasonStats(p.mlb_id, season - 1);
-    }
+/**
+ * Stats for the latest season Retrosheet has published (the last completed season,
+ * or the one before while Retrosheet catches up). Ids and birth dates come from the
+ * Chadwick register and are cached on the player row.
+ */
+export async function runStatsSync(players: PlayerConfig[], today: Date = new Date()): Promise<void> {
+  const mlbIds = players.map((p) => p.mlb_id);
+  const ids: Map<number, PlayerIds> = await getKnownPlayerIds(mlbIds);
+  const missing = mlbIds.filter((id) => !ids.has(id));
+  if (missing.length > 0) {
+    for (const [id, found] of await lookupPlayerIds(missing)) ids.set(id, found);
+  }
 
+  const latest = upcomingSeason(today) - 1;
+  let season = latest;
+  let data = await fetchRetrosheetSeason(season);
+  if (!data) data = await fetchRetrosheetSeason(--season);
+  if (!data) throw new Error(`Retrosheet has neither ${latest} nor ${season} season data`);
+
+  const retroIds = new Set([...ids.values()].map((i) => i.retroId).filter((r): r is string => r != null));
+  const stats = seasonStats(data.batting, data.pitching, retroIds);
+
+  for (const p of players) {
+    const pid: PlayerIds = ids.get(p.mlb_id) ?? { retroId: null, birthDate: null };
+    if (!pid.retroId) console.warn(`No Retrosheet id for ${p.name} (${p.mlb_id}) in the Chadwick register yet`);
+    const s = pid.retroId ? stats.get(pid.retroId) : undefined;
     await upsertPlayer({
       mlbId: p.mlb_id,
       name: p.name,
       position: p.position,
-      age,
       prevTeam: p.prev_team ?? null,
-      war: stats?.war ?? null,
-      season: stats?.season ?? null,
-      obp: stats?.obp ?? null,
-      slg: stats?.slg ?? null,
-      ops: stats?.ops ?? null,
-      era: stats?.era ?? null,
-      whip: stats?.whip ?? null,
-      ip: stats?.ip ?? null,
-      k9: stats?.k9 ?? null,
-      fip: stats?.fip ?? null,
+      retroId: pid.retroId,
+      birthDate: pid.birthDate,
+      age: pid.birthDate ? ageOn(pid.birthDate, today) : null,
+      season: s ? season : null,
+      ...s,
     });
   }
-}
-
-// Sync once, then every intervalMs. A failed scheduled run is logged and the
-// next one still happens; the initial run's error goes to the caller.
-export async function startStatsSync(
-  players: PlayerConfig[],
-  intervalMs: number = statsSyncIntervalMs,
-): Promise<void> {
-  await runStatsSync(players);
-  const timer = setInterval(() => {
-    runStatsSync(players).catch((err) => console.error("Stats sync failed:", err));
-  }, intervalMs);
-  timer.unref();
 }

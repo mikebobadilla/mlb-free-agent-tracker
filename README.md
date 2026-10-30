@@ -47,8 +47,15 @@ mlb-tracker/
 ## How It Works
 
 1. **Curate**: Add players to `config/players.yaml` with their MLB ID and, once known, their current contract
-2. **Sync**: The stats sync fetches stats from the MLB Stats API on startup and every 6 hours; the contract watcher checks MLB transactions for new signings every 30 minutes
+2. **Sync**: On startup and once a day, the app loads last season's stats from [Retrosheet](https://www.retrosheet.org), applies the curated contracts, and checks MLB transactions for new signings
 3. **View**: The dashboard shows each player's stats, status (signed or free agent), contract and the last season under contract
+
+## Data sources
+
+- **Retrosheet** — season stats, summed from its per-game files for the latest season it has published. Free for any use as long as its notice is shown, which the site footer does.
+- **Chadwick Baseball Bureau Register** — links MLB player ids to Retrosheet ids and provides birth dates (ODC Attribution License).
+- **MLB transactions** — checked once a day only to detect when a tracked player signs.
+- **Public news reports** — contract terms, entered by hand with a link to the source.
 
 ## Configuration
 
