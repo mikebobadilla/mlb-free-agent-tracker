@@ -2,7 +2,7 @@
 
 A TypeScript web app for tracking MLB free agents throughout the offseason: Express + Prisma (SQLite) backend, React SPA frontend.
 
-> **LLM Test Project**: This project is being developed as a test bed for the LongCat 2.5 model (model ID: `longcat-2.5-preview-free`, provider: `opencode`). The entire codebase — from initial scaffolding to templates to documentation — is being generated and iterated on by an LLM agent. This is very much an experiment in AI-assisted development, so expect rough edges, mistakes, and things that would normally be done differently in a human-led project.
+> **LLM Test Project**: This project is a test bed for AI-assisted development. It was scaffolded with the LongCat 2.5 model (model ID: `longcat-2.5-preview-free`, provider: `opencode`) and is now developed with Claude Code running in [omp](https://omp.sh) (model ID: `claude-opus-5-5`, provider: `anthropic`). The entire codebase — from initial scaffolding to templates to documentation — is being generated and iterated on by an LLM agent. This is very much an experiment in AI-assisted development, so expect rough edges, mistakes, and things that would normally be done differently in a human-led project.
 
 ## Quick Start
 
