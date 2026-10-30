@@ -20,17 +20,20 @@ This is an LLM test project scaffolded by LongCat 2.5 (opencode provider). The c
 ## Architecture
 
 ```
-src/server/index.ts      → Express app: mounts /api routes, serves dist/ SPA
-src/routes/               → Express routers (players API)
-src/store/                → Prisma query functions
-src/jobs/                 → statsSync.ts (every 6h), contractWatcher.ts (every 30m)
-src/models/               → TS types: Player, Contract, Rumor, Prediction, PlayerDashboard
-src/db/                   → Prisma client singleton + prisma/schema.prisma
-src/config/               → loadPlayers.ts (YAML → config)
-src/web/                  → React SPA: App.tsx, pages/Dashboard.tsx, pages/PlayerDetail.tsx, api/client.ts
+src/server/index.ts      → Express app: mounts /api routes, serves dist/ SPA, starts background jobs
+src/routes/api.ts        → Express router (players API)
+src/store/               → Prisma query functions (playerStore.ts)
+src/jobs/                → statsSync.ts (startup + every 6h), contractWatcher.ts (every 30m), runSync.ts (one-shot CLI)
+src/models.ts            → TS types: Player, Contract, Rumor, Prediction, PlayerDashboard
+src/db/prisma.ts         → Prisma client singleton
+src/config/              → loadPlayers.ts (YAML → config)
+src/main.tsx, src/App.tsx → React SPA entry + view switching
+src/pages/               → Dashboard.tsx, PlayerDetail.tsx
+src/api/client.ts        → SPA fetch client for /api
+src/test/setupDb.ts      → vitest setup: per-test-file throwaway SQLite DB
 config/players.yaml      → Curated player list (the ONLY file you manually edit)
 prisma/schema.prisma     → DB schema
-data/tracker.db          → SQLite file (auto-created, git-ignored)
+data/tracker.db          → SQLite file (created by `npm run db:push`, git-ignored)
 ```
 
 ## Key Patterns
@@ -44,10 +47,10 @@ data/tracker.db          → SQLite file (auto-created, git-ignored)
 ## Commands
 
 ```bash
-make server    # Start web server + background sync
-make sync      # One-shot stats sync (no server)
+make server    # Start web server + background jobs
+make sync      # One-shot stats sync + contract watch (no server)
 make build     # Build frontend to dist/
-make clean      # Remove build output + database
+make clean     # Remove node_modules, dist/ and data/ (database)
 ```
 
 ## Known Issues
@@ -64,7 +67,7 @@ make clean      # Remove build output + database
 - Keep dependencies minimal. npm packages sparingly.
 - Prisma queries live in `src/store/` — don't scatter them across routes.
 - Background jobs go in `src/jobs/` — each job is a standalone function.
-- Frontend: React SPA; API client in `src/web/api/client.ts`.
+- Frontend: React SPA; API client in `src/api/client.ts`.
 
 ## Data Sources
 
