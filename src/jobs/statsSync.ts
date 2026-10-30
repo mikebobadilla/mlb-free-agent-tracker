@@ -131,6 +131,14 @@ export async function runStatsSync(players: PlayerConfig[], today: Date = new Da
     const pid: PlayerIds = ids.get(p.mlb_id) ?? { retroId: null, birthDate: null };
     if (!pid.retroId) console.warn(`No Retrosheet id for ${p.name} (${p.mlb_id}) in the Chadwick register yet`);
     const s = pid.retroId ? stats.get(pid.retroId) : undefined;
+    // Show pitching stats for pitchers and hitting stats for everyone else, so a pitcher's
+    // interleague at-bats or a position player's mop-up inning don't show up (D-028).
+    const pitcher = ["P", "SP", "RP"].includes(p.position);
+    const shown = s && {
+      ...(pitcher
+        ? { era: s.era, whip: s.whip, ip: s.ip, k9: s.k9, fip: s.fip }
+        : { obp: s.obp, slg: s.slg, ops: s.ops }),
+    };
     await upsertPlayer({
       mlbId: p.mlb_id,
       name: p.name,
@@ -140,7 +148,7 @@ export async function runStatsSync(players: PlayerConfig[], today: Date = new Da
       birthDate: pid.birthDate,
       age: pid.birthDate ? ageOn(pid.birthDate, today) : null,
       season: s ? season : null,
-      ...s,
+      ...shown,
     });
   }
 }
