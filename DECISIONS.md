@@ -237,3 +237,19 @@ it belongs here.
   - The nightly transactions check still falls under MLB's "individual, non-commercial, non-bulk use" terms. It's limited to detecting signings and showing team and date, but it isn't explicitly permitted.
   - The first sync downloads up to 16 Chadwick files (~4 MB each); later syncs skip them unless a new player is added.
   - The MLB player-stats code (FlexFloat, `/people` age lookup) is gone.
+
+## D-028 — Track the 2026-27 free-agent class: MLB.com top 30 + pending player options
+- **Date:** 2026-10-30
+- **Status:** ACCEPTED
+- **Cards:** P3-007
+- **Context:** The original 11 players were mostly under long contracts (Soto through 2039). The maintainer only cares about players who are free agents or have a player decision this offseason. MLB.com's position-by-position list has 247 free agents (2026-10-29), too many to curate contracts for by hand.
+- **Decision:**
+  - **Who's tracked:** MLB.com's "top 30 names to watch in free agency" (2026-10-26), plus every player with a 2027 player option or opt-out still pending on 2026-10-29 (MLB.com options tracker): 34 players.
+  - **Left out:** Teruaki Sato and Kaima Taira have no MLB id until they're posted from Japan.
+  - **Contract blocks:** entered only where they decide status. Pending opt-outs (Burnes, Berríos, Matsui, Pagán, Wandy Peralta, Severino) need their current deals so they show as signed until they decide. King and Holmes have reported opt-outs, and Morejón and France keep their expired deals. Free agents without a block show as free agents.
+  - **Which stats show:** pitchers (`P`/`SP`/`RP`) show pitching stats only and everyone else hitting stats only. A pitcher's interleague at-bats (Trevor Rogers, .000 OPS) or a position player's mop-up inning (Jake Bauers, 3.60 ERA) aren't representative.
+- **Alternatives:** Only the 4 relevant original players (misses most of the market); the whole class of 247 (too many signings to enter by hand).
+- **Consequences:**
+  - After the 2026-11-02 option deadline, players who opt in should be dropped and players who opt out lose their "signed" status (add `opted_out_after`).
+  - Two-way players would lose one side of their stats.
+  - Foster Griffin has no stats yet: he pitched in Japan in 2025, and Retrosheet's 2026 season isn't out.

@@ -1,115 +1,20 @@
-# Curated player list. Each player may carry a `contract:` block with the terms of
-# their current deal, copied by hand from public reporting (D-024):
-#   team, years, total (guaranteed USD), first_season, signed (YYYY-MM-DD), source (URL),
-#   optional opted_out_after (season) and notes.
+# Curated player list: the 2026-27 free-agent class (D-028).
+#   - MLB.com's top 30 free agents (https://www.mlb.com/news/ranking-the-free-agents-for-2026-27-offseason),
+#     minus Teruaki Sato and Kaima Taira, who have no MLB id until they are posted from Japan.
+#   - Players with a 2027 player option or opt-out pending on 2026-10-29
+#     (https://www.mlb.com/news/mlb-players-with-2027-options-and-opt-outs).
+# prev_team is the player's last 2026 team.
+#
+# Each player may carry a `contract:` block with the terms of their current deal, copied by hand
+# from public reporting (D-024): team, years, total (guaranteed USD), first_season,
+# signed (YYYY-MM-DD), source (URL), optional opted_out_after (season) and notes.
+# Free agents without a block show as "free agent" until they sign.
 players:
-  - name: Juan Soto
-    position: OF
-    mlb_id: 665742
-    prev_team: Yankees
-    contract:
-      team: New York Mets
-      years: 15
-      total: 765000000
-      first_season: 2025
-      signed: 2024-12-11
-      notes: Full no-trade clause, $75M signing bonus, no deferrals. Opt-out after 2029 that the Mets can void by raising the last 10 years to $55M per year.
-      source: https://www.mlb.com/news/juan-soto-agrees-to-contract-with-mets
-  - name: Corbin Burnes
+  # MLB.com top 30 (ranking order)
+  - name: Tarik Skubal
     position: SP
-    mlb_id: 669203
-    prev_team: Orioles
-    contract:
-      team: Arizona Diamondbacks
-      years: 6
-      total: 210000000
-      first_season: 2025
-      signed: 2024-12-30
-      notes: Opt-out after 2026; decision due 2026-11-02.
-      source: https://www.mlb.com/news/corbin-burnes-contract-with-d-backs
-  - name: Alex Bregman
-    position: 3B
-    mlb_id: 608324
-    prev_team: Astros
-    contract:
-      team: Chicago Cubs
-      years: 5
-      total: 175000000
-      first_season: 2026
-      signed: 2026-01-14
-      notes: No opt-outs, full no-trade clause, $70M deferred. Previously opted out of a 3-year, $120M Red Sox deal after 2025.
-      source: https://www.mlb.com/news/alex-bregman-cubs-contract
-  - name: Willy Adames
-    position: SS
-    mlb_id: 642715
-    prev_team: Brewers
-    contract:
-      team: San Francisco Giants
-      years: 7
-      total: 182000000
-      first_season: 2025
-      signed: 2024-12-10
-      source: https://www.mlb.com/news/willy-adames-giants-contract
-  - name: Pete Alonso
-    position: 1B
-    mlb_id: 624413
-    prev_team: Mets
-    contract:
-      team: Baltimore Orioles
-      years: 5
-      total: 155000000
-      first_season: 2026
-      signed: 2025-12-11
-      notes: Partial no-trade clause.
-      source: https://www.mlb.com/news/pete-alonso-orioles-contract
-  - name: Blake Snell
-    position: SP
-    mlb_id: 605483
+    mlb_id: 669373
     prev_team: Dodgers
-    contract:
-      team: Los Angeles Dodgers
-      years: 5
-      total: 182000000
-      first_season: 2025
-      signed: 2024-11-30
-      notes: $52M signing bonus plus deferred money.
-      source: https://www.mlb.com/press-release/press-release-dodgers-sign-two-time-cy-young-award-winner-blake-snell
-  - name: Max Fried
-    position: SP
-    mlb_id: 608331
-    prev_team: Braves
-    contract:
-      team: New York Yankees
-      years: 8
-      total: 218000000
-      first_season: 2025
-      signed: 2024-12-17
-      notes: $20M signing bonus.
-      source: https://www.ksat.com/sports/2024/12/17/left-hander-max-fried-and-yankees-finalize-218-million-8-year-contract
-  - name: Teoscar Hernandez
-    position: OF
-    mlb_id: 606192
-    prev_team: Dodgers
-    contract:
-      team: Los Angeles Dodgers
-      years: 3
-      total: 66000000
-      first_season: 2025
-      signed: 2025-01-03
-      notes: $15M club option for 2028. $23M signing bonus, deferred.
-      source: https://www.mlb.com/news/teoscar-hernandez-contract-with-dodgers
-  - name: Adrian Morejon
-    position: RP
-    mlb_id: 670970
-    prev_team: Padres
-    contract:
-      team: San Diego Padres
-      years: 1
-      total: 3900000
-      first_season: 2026
-      signed: 2026-01-08
-      notes: One-year deal to avoid arbitration in his final arbitration year.
-      source: https://www.mlb.com/news/padres-arbitration-deadline-2026
   - name: Michael King
     position: SP
     mlb_id: 650633
@@ -123,6 +28,111 @@ players:
       opted_out_after: 2026
       notes: Opted out after 2026 per sources (https://www.mlb.com/news/michael-king-free-agent-2027); the club has not confirmed.
       source: https://www.mlb.com/news/michael-king-padres-contract
+  - name: Freddy Peralta
+    position: SP
+    mlb_id: 642547
+    prev_team: Rays
+  - name: Seiya Suzuki
+    position: OF
+    mlb_id: 673548
+    prev_team: Cubs
+  - name: Randy Arozarena
+    position: OF
+    mlb_id: 668227
+    prev_team: Mariners
+  - name: Brandon Lowe
+    position: 2B
+    mlb_id: 664040
+    prev_team: Pirates
+  - name: Clay Holmes
+    position: SP
+    mlb_id: 605280
+    prev_team: Cubs
+    contract:
+      team: New York Mets
+      years: 3
+      total: 38000000
+      first_season: 2025
+      signed: 2024-12-09
+      opted_out_after: 2026
+      notes: Traded to the Cubs on 2026-08-03. Declined his $12M player option for 2027 on 2026-10-29, per ESPN's Jesse Rogers (https://www.cbssports.com/fantasy/baseball/news/clay-holmes-declines-player-option-for-2027/); not yet confirmed by the club.
+      source: https://www.foxsports.com/articles/mlb/clay-holmes-and-mets-finalize-38m-3year-contract-with-plans-to-convert-him-into-a-starter
+  - name: Adrian Morejon
+    position: RP
+    mlb_id: 670970
+    prev_team: Padres
+    contract:
+      team: San Diego Padres
+      years: 1
+      total: 3900000
+      first_season: 2026
+      signed: 2026-01-08
+      notes: One-year deal to avoid arbitration in his final arbitration year.
+      source: https://www.mlb.com/news/padres-arbitration-deadline-2026
+  - name: Trevor Rogers
+    position: SP
+    mlb_id: 669432
+    prev_team: Orioles
+  - name: Jake Bauers
+    position: 1B
+    mlb_id: 641343
+    prev_team: Brewers
+  - name: Luis Arraez
+    position: 2B
+    mlb_id: 650333
+    prev_team: Phillies
+  - name: Ryan Jeffers
+    position: C
+    mlb_id: 680777
+    prev_team: Twins
+  - name: Sonny Gray
+    position: SP
+    mlb_id: 543243
+    prev_team: Red Sox
+  - name: Jazz Chisholm Jr.
+    position: 2B
+    mlb_id: 665862
+    prev_team: Yankees
+  - name: Tyler Mahle
+    position: SP
+    mlb_id: 641816
+    prev_team: Braves
+  - name: David Bednar
+    position: RP
+    mlb_id: 670280
+    prev_team: Yankees
+  - name: Nick Martinez
+    position: SP
+    mlb_id: 607259
+    prev_team: Rays
+  - name: Casey Mize
+    position: SP
+    mlb_id: 663554
+    prev_team: Padres
+  - name: Ian Happ
+    position: OF
+    mlb_id: 664023
+    prev_team: Cubs
+  - name: Gleyber Torres
+    position: 2B
+    mlb_id: 650402
+    prev_team: Tigers
+  - name: Foster Griffin
+    position: SP
+    mlb_id: 656492
+    prev_team: Guardians
+  - name: Kevin Gausman
+    position: SP
+    mlb_id: 592332
+    prev_team: Cubs
+  - name: Shota Imanaga
+    position: SP
+    mlb_id: 684007
+    prev_team: Cubs
+  - name: Michael Soroka
+    position: SP
+    mlb_id: 647336
+    prev_team: Diamondbacks
   - name: Ty France
     position: 1B
     mlb_id: 664034
@@ -135,3 +145,89 @@ players:
       signed: 2026-02-16
       notes: Minor-league deal with a spring training invite; $1.35M is his 2026 salary, not a guarantee.
       source: https://www.spokesman.com/stories/2026/aug/29/ty-france-signed-a-bargain-contract-now-hes-paying
+  - name: Alec Bohm
+    position: 3B
+    mlb_id: 664761
+    prev_team: Phillies
+  - name: Raisel Iglesias
+    position: RP
+    mlb_id: 628452
+    prev_team: Braves
+  - name: Robbie Ray
+    position: SP
+    mlb_id: 592662
+    prev_team: Padres
+
+  # 2027 player options / opt-outs pending (decision deadline 2026-11-02)
+  - name: Corbin Burnes
+    position: SP
+    mlb_id: 669203
+    prev_team: Diamondbacks
+    contract:
+      team: Arizona Diamondbacks
+      years: 6
+      total: 210000000
+      first_season: 2025
+      signed: 2024-12-30
+      notes: Opt-out after 2026; decision due 2026-11-02.
+      source: https://www.mlb.com/news/corbin-burnes-contract-with-d-backs
+  - name: José Berríos
+    position: SP
+    mlb_id: 621244
+    prev_team: Blue Jays
+    contract:
+      team: Toronto Blue Jays
+      years: 7
+      total: 131000000
+      first_season: 2022
+      signed: 2021-11-18
+      notes: Extension. Opt-out after 2026, giving up $48M for 2027-28; decision due 2026-11-02. Missed 2026 after Tommy John surgery in May.
+      source: https://www.espn.com/mlb/story/_/id/32661507/jose-berrios-last-two-months-toronto-blue-jays-made-decision-re-sign-easy-comfortable
+  - name: Yuki Matsui
+    position: RP
+    mlb_id: 673513
+    prev_team: Padres
+    contract:
+      team: San Diego Padres
+      years: 5
+      total: 28000000
+      first_season: 2024
+      signed: 2023-12-23
+      notes: Opt-outs after 2026 and 2027; decision due 2026-11-02.
+      source: https://www.mlb.com/padres/news/yuki-matsui-padres-free-agent-deal
+  - name: Emilio Pagán
+    position: RP
+    mlb_id: 641941
+    prev_team: Reds
+    contract:
+      team: Cincinnati Reds
+      years: 2
+      total: 20000000
+      first_season: 2026
+      signed: 2025-12-04
+      notes: The 2027 year is a $10M player option with no buyout; decision due 2026-11-02.
+      source: https://www.espn.com/mlb/story/_/id/47205589/emilio-pagan-said-was-easy-choice-re-sign-reds
+  - name: Wandy Peralta
+    position: RP
+    mlb_id: 593974
+    prev_team: Padres
+    contract:
+      team: San Diego Padres
+      years: 4
+      total: 16500000
+      first_season: 2024
+      signed: 2024-02-09
+      notes: Opt-outs after each of the first three seasons (opted in after 2024 and 2025); 2027 decision due 2026-11-02.
+      source: https://www.sandiegouniontribune.com/2024/02/09/wandy-peralta-finalizes-a-165-million-4-year-deal-with-the-padres
+  - name: Luis Severino
+    position: SP
+    mlb_id: 622663
+    prev_team: Athletics
+    contract:
+      team: Athletics
+      years: 3
+      total: 67000000
+      first_season: 2025
+      signed: 2024-12-06
+      notes: The 2027 year is a $22M player option (the club calls the deal two years plus the option); decision due 2026-11-02.
+      source: https://www.espn.com/mlb/story/_/id/42796448/sources-athletics-luis-severino-reach-3-year-67m-deal

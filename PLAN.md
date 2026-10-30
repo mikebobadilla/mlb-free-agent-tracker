@@ -20,6 +20,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P3-004 | Track contract expiration dates | DONE | feature/P3-004-contract-expiry, feature/curated-contracts | D-020, D-025 |
 | P3-005 | Rewrite backend and frontend in Node.js | DONE | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
 | P3-006 | Current contracts with terms | DONE | feature/curated-contracts | D-024, D-025 |
+| P3-007 | Track the 2026-27 free-agent class | DONE | feature/fa-class-2027 | D-028 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -254,6 +255,20 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Open questions:** (empty)
 - **Decisions:** D-024, D-025
 - **Files:** `config/players.yaml`, `prisma/schema.prisma`, `src/contracts.ts`, `src/config/loadPlayers.ts`, `src/store/playerStore.ts`, `src/jobs/`, `src/pages/`, `src/format.ts`
+
+### [DONE] Track the 2026-27 free-agent class
+- **ID:** P3-007
+- **Branch / PR:** `feature/fa-class-2027` / —
+- **Problem:** Most tracked players were under long contracts with nothing to decide this offseason
+- **Impact:** The dashboard didn't show the actual free-agent market
+- **Approach:** Replace the player list with MLB.com's top 30 free agents plus pending 2027 player options; enter current contracts where they decide status; show only the stats that match the player's position (D-028)
+- **Acceptance criteria:**
+  - [x] 34 players tracked; the 7 old players under contract are removed from the dashboard
+  - [x] Players with pending opt-outs show as signed with their current contract until they decide
+  - [x] Pitchers show only pitching stats, hitters only hitting stats
+- **Open questions:** (empty)
+- **Decisions:** D-028
+- **Files:** `config/players.yaml`, `src/jobs/statsSync.ts`
 
 ---
 

@@ -94,4 +94,39 @@ describe("runStatsSync", () => {
     await runStatsSync(soto, today);
     expect(fetchMock.mock.calls.some(([u]) => u.includes("chadwickbureau"))).toBe(false);
   });
+
+  it("keeps hitting stats for hitters and pitching stats for pitchers", async () => {
+    const zip = zipSync({
+      "2025batting.csv": strToU8(
+        [battingHeader, "G1,bauej001,MIL,value,4,4,1,0,0,0,0,0,0,regular", "G2,roget003,BAL,value,2,2,0,0,0,0,0,0,0,regular"].join("\n"),
+      ),
+      "2025pitching.csv": strToU8(
+        [pitchingHeader, "G1,bauej001,MIL,value,3,1,2,0,0,0,0,regular", "G2,roget003,BAL,value,18,2,4,1,0,0,6,regular"].join("\n"),
+      ),
+    });
+    const register = "key_mlbam,key_retro,birth_year,birth_month,birth_day\n641343,bauej001,1995,10,6\n669432,roget003,1997,11,13\n";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("chadwickbureau")) return new Response(register);
+        if (url.endsWith("/2025/2025csvs.zip")) return new Response(zip);
+        return new Response("not found", { status: 404 });
+      }),
+    );
+
+    await runStatsSync(
+      [
+        { name: "Jake Bauers", position: "1B", mlb_id: 641343 },
+        { name: "Trevor Rogers", position: "SP", mlb_id: 669432 },
+      ],
+      new Date("2026-10-29T12:00:00Z"),
+    );
+
+    const hitter = await prisma.player.findUniqueOrThrow({ where: { mlbId: 641343 } });
+    expect(hitter.ops).not.toBeNull();
+    expect(hitter).toMatchObject({ era: null, ip: null });
+    const pitcher = await prisma.player.findUniqueOrThrow({ where: { mlbId: 669432 } });
+    expect(pitcher.ip).toBe(6);
+    expect(pitcher).toMatchObject({ obp: null, ops: null });
+  });
 });
