@@ -14,10 +14,12 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-002 | Last-season stats fallback | DONE | #1 | D-004, D-005, D-010, D-012 |
 | P1-003 | More stats (OPS, WHIP, IP, FIP, K/9) | DONE | #1 | D-009, D-010, D-013, D-014 |
 | P1-004 | Sync player age | DONE | #1 | D-006 |
-| P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
+| P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009, D-024, D-026 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
-| P3-004 | Track contract expiration dates | IN REVIEW | feature/P3-004-contract-expiry | D-020 |
+| P1-007 | Replace MLB Stats API with openly licensed data | GROOMING | — | D-026 |
+| P3-004 | Track contract expiration dates | DONE | feature/P3-004-contract-expiry, feature/curated-contracts | D-020, D-025 |
 | P3-005 | Rewrite backend and frontend in Node.js | DONE | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
+| P3-006 | Current contracts with terms | DONE | feature/curated-contracts | D-024, D-025 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -115,10 +117,20 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Impact:** WAR is the most common single-number comparison for free agents
 - **Approach:** TBD — needs a second data source
 - **Open questions:**
-  - Which source: FanGraphs (unofficial JSON), Baseball-Reference (scraping), or a manual `war` field in `players.yaml`?
-  - fWAR or bWAR?
-  - Is an unofficial/undocumented dependency acceptable?
-- **Decisions:** D-007, D-009
+  - FanGraphs and Baseball-Reference are ruled out: their terms forbid republishing (D-024, D-026), and no openly licensed WAR exists. Options left: a manual `war` field in `players.yaml` (from which published figure?), or drop WAR.
+- **Decisions:** D-007, D-009, D-024, D-026
+- **Files:** TBD
+
+### [GROOMING] Replace MLB Stats API with openly licensed data
+- **ID:** P1-007
+- **Problem:** The MLB Stats API terms allow only "individual, non-commercial, non-bulk use" (D-026); this is a public project
+- **Impact:** The stats sync and contract watcher depend on data the site may not be allowed to republish
+- **Approach:** Retrosheet season totals (summed from its per-game CSVs) for hitting/pitching stats, Chadwick register for MLBAM ↔ Retrosheet ids and birth dates; show the Retrosheet and ODC-By notices on the site (D-026)
+- **Open questions:**
+  - Ask MLBAM for written permission first, or switch outright?
+  - Retrosheet publishes about a month after the season; is showing 2025 stats until then acceptable?
+  - Signing detection has no open source. Keep MLB transactions for detection only, or rely on curated contracts alone?
+- **Decisions:** D-026
 - **Files:** TBD
 
 ### [DONE] Server startup wipes synced data
@@ -169,7 +181,8 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Problem:** No way to know when a tracked player signs without manually checking
 - **Impact:** The tracker goes stale as soon as someone signs
 - **Approach:** Poll MLB Stats API transactions endpoint for tracked players. When a signing is detected, auto-create a contract record and update player status to "signed".
-- **Files:** `internal/jobs/contract_watcher.go` (new), `internal/store/store.go`
+- **Progress:** P3-006 shipped the core: `SFA` transactions since Oct 1, stored once per transaction id, status derived per D-025. Left: flag minor-league deals.
+- **Files:** `src/jobs/contractWatcher.ts`, `src/store/playerStore.ts`
 
 ### [NOT STARTED] Contract comparison (predicted vs actual)
 - **ID:** P3-002
@@ -203,22 +216,40 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Decisions:** D-021, D-022
 - **Files:** `package.json`, `prisma/schema.prisma`, `src/**`, `config/players.yaml`, `AGENTS.md`, `DECISIONS.md`
 
-### [IN REVIEW] Track contract expiration dates
+### [DONE] Track contract expiration dates
 - **ID:** P3-004
 - **Branch / PR:** `feature/P3-004-contract-expiry` / —
 - **Problem:** No way to know which player contracts are expiring this season
 - **Impact:** Missing context for understanding when players become free agents
-- **Approach:** Add a `contract_expiry` column to the `players` table (INTEGER, nullable). Store the expiration year (e.g., `2026`). Set via a store function (`SetContractExpiry(playerID, year)`). Display on the player detail page and dashboard. Add 3 new players to `players.yaml` whose contracts expire after the 2026 season.
+- **Approach:** Add a `contract_expiry` column to the `players` table (INTEGER, nullable). Display on the player detail page and dashboard. Add 3 new players to `players.yaml` whose contracts expire after the 2026 season. Since P3-006 the year is derived from the current contract (D-025) instead of being set by hand (D-020).
 - **Acceptance criteria:**
   - [x] New `contract_expiry` column in `players` table (nullable INTEGER)
-  - [x] `SetContractExpiry(playerID, year)` store function
-  - [ ] Player detail page shows contract expiry year (done in Go; not ported by P3-005)
+  - [x] ~~`SetContractExpiry(playerID, year)` store function~~ replaced by `refreshContractState` (D-025)
+  - [x] Player detail page shows contract expiry year
   - [x] Dashboard shows contract expiry year
   - [x] 3 new players added to `players.yaml` (Morejon, King, France)
-  - [ ] `contract_expiry` set in DB for the 3 new players (done in Go sync CLI; not ported by P3-005)
+  - [x] `contract_expiry` set in DB for the 3 new players (2026, from their curated contracts)
 - **Open questions:** (empty)
-- **Decisions:** D-020
+- **Decisions:** D-020, D-025
 - **Files:** `prisma/schema.prisma`, `src/db/`, `src/store/`, `src/pages/`, `config/players.yaml`
+
+### [DONE] Current contracts with terms
+- **ID:** P3-006
+- **Branch / PR:** `feature/curated-contracts` / —
+- **Problem:** The tracker can't show a player's current contract; the MLB API has no terms and the old watcher recorded each player's first-ever transaction as a signing
+- **Impact:** Status, contract and expiry were wrong for every player
+- **Approach:** Curated `contract:` blocks in `players.yaml` with a required source URL (D-024); one rules module picks the current contract and derives status and expiry (D-025); the watcher records only this offseason's `SFA` transactions, once each, and shows "terms not entered" until the YAML is updated.
+- **Acceptance criteria:**
+  - [x] Dashboard shows status, team + terms, and the last season under contract for every player
+  - [x] Player page shows terms, AAV, seasons, opt-out, signed date, notes and a link to the source
+  - [x] A player whose contract ran out or who opted out shows as a free agent
+  - [x] A signing after the curated contract shows with "terms not entered", recorded once
+  - [x] Invalid `contract:` blocks fail at startup naming the player and field
+  - [x] Players removed from `players.yaml` disappear from the dashboard
+  - [x] Fixed wrong MLB ids for Willy Adames (642715, was Bo Bichette) and Max Fried (608331, was Lucas Giolito)
+- **Open questions:** (empty)
+- **Decisions:** D-024, D-025
+- **Files:** `config/players.yaml`, `prisma/schema.prisma`, `src/contracts.ts`, `src/config/loadPlayers.ts`, `src/store/playerStore.ts`, `src/jobs/`, `src/pages/`, `src/format.ts`
 
 ---
 

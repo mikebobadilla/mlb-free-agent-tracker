@@ -27,7 +27,13 @@ export interface Contract {
   years: number | null;
   totalValue: number | null;
   aav: number | null;
-  signedDate: string | null;
+  signedDate: string | null; // YYYY-MM-DD
+  origin: string; // "curated" (players.yaml) | "transaction" (MLB signing, no terms)
+  transactionId: number | null;
+  firstSeason: number | null;
+  optedOutAfter: number | null;
+  notes: string | null;
+  source: string | null;
   createdAt: string;
 }
 

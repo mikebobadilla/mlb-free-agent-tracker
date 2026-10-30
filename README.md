@@ -46,21 +46,32 @@ mlb-tracker/
 
 ## How It Works
 
-1. **Curate**: Add players to `config/players.yaml` with their MLB ID
-2. **Sync**: The stats sync fetches stats from the MLB Stats API on startup and every 6 hours; the contract watcher checks MLB transactions for signings every 30 minutes
-3. **View**: The dashboard shows all tracked players, their status, and details
+1. **Curate**: Add players to `config/players.yaml` with their MLB ID and, once known, their current contract
+2. **Sync**: The stats sync fetches stats from the MLB Stats API on startup and every 6 hours; the contract watcher checks MLB transactions for new signings every 30 minutes
+3. **View**: The dashboard shows each player's stats, status (signed or free agent), contract and the last season under contract
 
 ## Configuration
 
-Edit `config/players.yaml` to add/remove players:
+Edit `config/players.yaml` to add/remove players and record contracts:
 
 ```yaml
 players:
   - name: Juan Soto
     position: OF
-    mlb_id: 665742        # Find on baseball-reference.com or mlb.com
+    mlb_id: 665742        # the number in the player's mlb.com URL
     prev_team: Yankees
+    contract:             # optional; copy the facts from a public report
+      team: New York Mets
+      years: 15
+      total: 765000000    # guaranteed value in dollars
+      first_season: 2025
+      signed: 2024-12-11
+      source: https://www.mlb.com/news/juan-soto-agrees-to-contract-with-mets
+      # opted_out_after: 2029   # if the player opted out
+      # notes: free text shown on the player page
 ```
+
+Contract terms are entered by hand because no source that allows republishing provides them. When the watcher sees a new signing, the dashboard shows "terms not entered" until the `contract:` block is updated. An invalid block stops the server at startup with the player and field named.
 
 Environment (`.env`):
 

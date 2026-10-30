@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchPlayers } from "../api/client";
+import { fmtStatus, fmtTerms } from "../format";
 import type { PlayerDashboard } from "../models";
 
 function fmtWar(war: number | null): string {
@@ -70,8 +71,9 @@ export function Dashboard({ onOpenPlayer }: { onOpenPlayer: (mlbId: number) => v
                 <th>ERA</th>
                 <th>WHIP</th>
                 <th>FIP</th>
-                <th>Contract Expires</th>
                 <th>Status</th>
+                <th>Contract</th>
+                <th>Through</th>
               </tr>
             </thead>
             <tbody>
@@ -89,14 +91,9 @@ export function Dashboard({ onOpenPlayer }: { onOpenPlayer: (mlbId: number) => v
                     <td>{fmtStat(p.era)}</td>
                     <td>{fmtStat(p.whip)}</td>
                     <td>{fmtStat(p.fip)}</td>
+                    <td><span className={`badge ${p.status}`}>{fmtStatus(p.status)}</span></td>
+                    <td>{d.contract ? `${d.contract.team}, ${fmtTerms(d.contract)}` : "-"}</td>
                     <td>{p.contractExpiry ?? "-"}</td>
-                    <td>
-                      {d.contract ? (
-                        <span className="badge signed">Signed ({d.contract.team})</span>
-                      ) : (
-                        <span className={`badge ${p.status}`}>{p.status}</span>
-                      )}
-                    </td>
                   </tr>
                 );
               })}

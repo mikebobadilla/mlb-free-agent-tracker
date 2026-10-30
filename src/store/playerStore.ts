@@ -1,5 +1,7 @@
 import { prisma } from "../db/prisma";
-import type { Contract, Player, PlayerDashboard, Prediction, Rumor } from "../models";
+import type { ContractConfig } from "../config/loadPlayers";
+import { contractExpiry, pickCurrentContract, statusFor } from "../contracts";
+import type { PlayerDashboard, Prediction } from "../models";
 
 export interface PlayerRecordInput {
   mlbId: number;
@@ -43,8 +45,8 @@ export async function upsertPlayer(input: PlayerRecordInput) {
       k9: input.k9 ?? null,
       fip: input.fip ?? null,
     },
-    // Synced fields only. status (contract watcher) and contractExpiry
-    // (setContractExpiry) are owned elsewhere and must survive a sync (D-011).
+    // Synced fields only. status and contractExpiry are owned by refreshContractState
+    // and must survive a sync (D-011, D-025).
     update: {
       name: input.name,
       position: input.position,
@@ -68,43 +70,69 @@ export async function getPlayerByMlbId(mlbId: number) {
   return prisma.player.findUnique({ where: { mlbId } });
 }
 
-export async function getLatestContract(playerId: number): Promise<Contract | null> {
-  const contracts = await prisma.contract.findMany({
-    where: { playerId },
-    orderBy: { createdAt: "desc" },
-  });
-  const c = contracts[0];
-  if (!c) return null;
-  return {
-    ...c,
-    signedDate: c.signedDate ? c.signedDate.toISOString() : null,
-    createdAt: c.createdAt.toISOString(),
+/** Replace the player's curated contract with the one from players.yaml, or remove it (D-024). */
+export async function saveCuratedContract(mlbId: number, c: ContractConfig | undefined) {
+  const player = await prisma.player.findUnique({ where: { mlbId } });
+  if (!player) return;
+  const existing = await prisma.contract.findFirst({ where: { playerId: player.id, origin: "curated" } });
+  if (!c) {
+    if (existing) await prisma.contract.delete({ where: { id: existing.id } });
+    return;
+  }
+  const data = {
+    team: c.team,
+    years: c.years,
+    totalValue: c.total,
+    aav: c.total / c.years,
+    firstSeason: c.first_season,
+    optedOutAfter: c.opted_out_after ?? null,
+    signedDate: new Date(c.signed),
+    notes: c.notes ?? null,
+    source: c.source,
   };
+  if (existing) {
+    await prisma.contract.update({ where: { id: existing.id }, data });
+  } else {
+    await prisma.contract.create({ data: { ...data, playerId: player.id, origin: "curated" } });
+  }
 }
 
-export async function saveContract(contract: Omit<Contract, "id" | "createdAt">) {
-  const created = await prisma.contract.create({
-    data: {
-      playerId: contract.playerId,
-      team: contract.team,
-      years: contract.years,
-      totalValue: contract.totalValue,
-      aav: contract.aav,
-      signedDate: contract.signedDate ? new Date(contract.signedDate) : null,
-    },
+/** Record an MLB "signed free agent" transaction once, keyed by its transaction id. */
+export async function saveTransactionSigning(
+  mlbId: number,
+  t: { transactionId: number; team: string; date: string },
+) {
+  const player = await prisma.player.findUnique({ where: { mlbId } });
+  if (!player) return;
+  await prisma.contract.upsert({
+    where: { transactionId: t.transactionId },
+    create: { playerId: player.id, team: t.team, signedDate: new Date(t.date), transactionId: t.transactionId },
+    update: {},
   });
-  return {
-    ...created,
-    signedDate: created.signedDate ? created.signedDate.toISOString() : null,
-    createdAt: created.createdAt.toISOString(),
-  };
 }
 
-export async function setContractExpiry(playerId: number, year: number) {
+/** Recompute status and contractExpiry from the player's current contract (D-025). */
+export async function refreshContractState(mlbId: number, today: Date = new Date()) {
+  const player = await prisma.player.findUnique({ where: { mlbId }, include: { contracts: true } });
+  if (!player) return;
+  const current = pickCurrentContract(player.contracts);
   await prisma.player.update({
-    where: { id: playerId },
-    data: { contractExpiry: year },
+    where: { id: player.id },
+    data: { status: statusFor(current, today), contractExpiry: contractExpiry(current) },
   });
+}
+
+/** Delete players (and their contracts, rumors, predictions) that are no longer in players.yaml. */
+export async function removeUntrackedPlayers(trackedMlbIds: number[]) {
+  const stale = await prisma.player.findMany({ where: { mlbId: { notIn: trackedMlbIds } }, select: { id: true } });
+  const ids = stale.map((p) => p.id);
+  if (ids.length === 0) return;
+  await prisma.$transaction([
+    prisma.contract.deleteMany({ where: { playerId: { in: ids } } }),
+    prisma.rumor.deleteMany({ where: { playerId: { in: ids } } }),
+    prisma.prediction.deleteMany({ where: { playerId: { in: ids } } }),
+    prisma.player.deleteMany({ where: { id: { in: ids } } }),
+  ]);
 }
 
 export async function getDashboardData(mlbIds?: number[]): Promise<PlayerDashboard[]> {
@@ -115,15 +143,23 @@ export async function getDashboardData(mlbIds?: number[]): Promise<PlayerDashboa
   });
   const result: PlayerDashboard[] = [];
   for (const p of players) {
+    const { contracts, rumors, predictions, ...player } = p;
+    const contract = pickCurrentContract(contracts);
     result.push({
-      player: p as unknown as Player,
-      contract: p.contracts.length > 0 ? (p.contracts[0] as unknown as Contract) : null,
-      rumors: (p.rumors ?? []).map((r) => ({
+      player: { ...player, updatedAt: player.updatedAt.toISOString() },
+      contract: contract
+        ? {
+            ...contract,
+            signedDate: contract.signedDate ? contract.signedDate.toISOString().slice(0, 10) : null,
+            createdAt: contract.createdAt.toISOString(),
+          }
+        : null,
+      rumors: rumors.map((r) => ({
         ...r,
         datePosted: r.datePosted ? r.datePosted.toISOString() : null,
         createdAt: r.createdAt.toISOString(),
       })),
-      prediction: p.predictions.length > 0 ? (p.predictions[0] as unknown as Prediction) : null,
+      prediction: predictions.length > 0 ? (predictions[0] as unknown as Prediction) : null,
     });
   }
   return result;

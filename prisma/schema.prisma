@@ -42,6 +42,13 @@ model Contract {
   totalValue Float?
   aav        Float?
   signedDate DateTime?
+  // "curated" = terms from players.yaml (D-024); "transaction" = MLB SFA transaction, no terms.
+  origin        String   @default("transaction")
+  transactionId Int?     @unique
+  firstSeason   Int?
+  optedOutAfter Int?
+  notes         String?
+  source        String?
   createdAt  DateTime @default(now())
 }
 
