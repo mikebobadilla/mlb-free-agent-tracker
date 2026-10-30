@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -11,5 +11,10 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  test: {
+    // Feature worktrees live under .claude/worktrees/; their tests belong to their own branches.
+    exclude: [...configDefaults.exclude, ".claude/**"],
+    setupFiles: ["src/test/setupDb.ts"],
   },
 });

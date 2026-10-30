@@ -2,7 +2,7 @@ import express from "express";
 import path from "node:path";
 import { apiRouter } from "../routes/api";
 import { loadPlayers } from "../config/loadPlayers";
-import { runStatsSync } from "../jobs/statsSync";
+import { startStatsSync } from "../jobs/statsSync";
 import { startContractWatcher } from "../jobs/contractWatcher";
 
 const app = express();
@@ -27,7 +27,7 @@ if (process.env.NODE_ENV !== "test") {
 
 async function main() {
   const players = await loadPlayers();
-  await runStatsSync(players);
+  await startStatsSync(players);
   startContractWatcher(players);
 }
 
