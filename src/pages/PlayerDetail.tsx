@@ -115,7 +115,7 @@ export function PlayerDetail({ mlbId, onBack }: { mlbId: number; onBack: () => v
               </div>
               <div className="stat-box">
                 <span className="stat-label">IP</span>
-                <span className="stat-value">{fmtStat(p.ip)}</span>
+                <span className="stat-value">{p.ip == null ? "-" : p.ip.toFixed(1)}</span>
               </div>
               <div className="stat-box">
                 <span className="stat-label">K/9</span>

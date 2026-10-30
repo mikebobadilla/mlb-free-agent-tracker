@@ -4,7 +4,7 @@ This file provides guidance to AI agents working on this project.
 
 ## Project Overview
 
-MLB Free Agent Tracker — a Node.js + TypeScript web app for tracking MLB free agents throughout the offseason. Designed to be a read-only dashboard: a curated player list is maintained in YAML, background jobs sync stats from the MLB Stats API, and the web app displays everything.
+MLB Free Agent Tracker — a Node.js + TypeScript web app for tracking MLB free agents throughout the offseason. Designed to be a read-only dashboard: a curated player list is maintained in YAML, a nightly job syncs stats from Retrosheet and signings from MLB transactions, and the web app displays everything.
 
 This is an LLM test project scaffolded by LongCat 2.5 (opencode provider). The codebase may have rough edges — prioritize simplicity and readability over cleverness.
 
@@ -23,7 +23,8 @@ This is an LLM test project scaffolded by LongCat 2.5 (opencode provider). The c
 src/server/index.ts      → Express app: mounts /api routes, serves dist/ SPA, starts background jobs
 src/routes/api.ts        → Express router (players API)
 src/store/               → Prisma query functions (playerStore.ts)
-src/jobs/                → statsSync.ts (startup + every 6h), curatedContracts.ts (startup), contractWatcher.ts (every 30m), runSync.ts (one-shot CLI)
+src/jobs/                → syncCycle.ts (startup + every 24h: statsSync → curatedContracts → contractWatcher), playerIds.ts (Chadwick lookup), runSync.ts (one-shot CLI)
+src/csv.ts               → Minimal CSV parser for Retrosheet/Chadwick files
 src/contracts.ts         → Rules: current contract, status, expiry (D-025)
 src/format.ts            → SPA formatters for money, contract terms, status
 src/models.ts            → TS types: Player, Contract, Rumor, Prediction, PlayerDashboard
@@ -42,9 +43,9 @@ data/tracker.db          → SQLite file (created by `npm run db:push`, git-igno
 
 - **Read-only dashboard:** No forms, no user input. Only background workers write to DB.
 - **Curated config:** `config/players.yaml` defines which players to track and each player's current `contract:` (terms copied from public reporting, with a `source` URL — D-024). Add/remove players or edit contracts there, then run `npm run sync`. Players removed from the YAML are deleted from the database on sync.
-- **Background sync:** `jobs/statsSync` runs on startup + every 6 hours, then curated contracts are applied; `jobs/contractWatcher` records new `SFA` signings every 30 minutes. Rate-limited to ~5 req/sec.
+- **Background sync:** `jobs/syncCycle` runs on startup and every 24 hours: Retrosheet stats, then curated contracts, then the MLB transactions check for new `SFA` signings (D-027).
 - **Contract state:** status and contract expiry are derived from the current contract by `refreshContractState` only (D-025). Don't write them anywhere else.
-- **Data licensing:** This is a public project. Only use sources whose terms allow republishing; FanGraphs, Spotrac, Cot's and Baseball-Reference don't (D-024, D-026).
+- **Data licensing:** This is a public project. Only use sources whose terms allow republishing; FanGraphs, Spotrac, Cot's and Baseball-Reference don't (D-024, D-026). Keep the attribution footer in `src/App.tsx` in sync with the sources used (D-027).
 - **ORM:** Prisma. Query functions live in `src/store/` — don't scatter Prisma calls across handlers/routes.
 - **Frontend:** React SPA + JSON API (Express serves `dist/` in production). Dev via Vite proxy `/api → localhost:8780`.
 
@@ -60,7 +61,8 @@ make clean     # Remove node_modules, dist/ and data/ (database)
 ## Known Issues
 
 - WAR and wRC+ have no openly licensed source — the WAR column stays empty (P1-005).
-- MLB Stats API terms allow only "individual, non-commercial, non-bulk use"; replacement planned in P1-007 (D-026).
+- Retrosheet publishes a season about a month after it ends, so stats show the last season it has (2025 until 2026 appears).
+- The daily MLB transactions check still falls under MLB's "individual, non-commercial, non-bulk use" terms (D-027).
 
 ## Conventions
 
@@ -76,7 +78,9 @@ make clean     # Remove node_modules, dist/ and data/ (database)
 
 ## Data Sources
 
-- **MLB Stats API** (`statsapi.mlb.com`): Player stats and signing transactions. Free, no auth, rate-limited; see D-026 for its usage terms.
+- **Retrosheet** (`retrosheet.org`): Season stats, summed from its per-game CSVs. Free for any use with its notice shown.
+- **Chadwick Baseball Bureau Register** (GitHub): MLB id ↔ Retrosheet id and birth dates. ODC Attribution License.
+- **MLB Stats API** (`statsapi.mlb.com`): Daily check for signing transactions only (D-027).
 - **Curated YAML**: Player list and current contracts maintained manually in `config/players.yaml`.
 
 ## Future Phases (see README for full roadmap)

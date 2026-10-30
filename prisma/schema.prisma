@@ -14,6 +14,8 @@ model Player {
   position         String
   age              Int?
   prevTeam         String?
+  retroId          String?   // Retrosheet id, from the Chadwick register (D-027)
+  birthDate        DateTime?
   war              Float?
   season           Int?
   status           String   @default("unsigned")

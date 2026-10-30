@@ -9,10 +9,10 @@ export interface PlayerRecordInput {
   position: string;
   age?: number | null;
   prevTeam?: string | null;
+  retroId?: string | null;
+  birthDate?: Date | null;
   war?: number | null;
   season?: number | null;
-  status?: string;
-  contractExpiry?: number | null;
   obp?: number | null;
   slg?: number | null;
   ops?: number | null;
@@ -24,46 +24,40 @@ export interface PlayerRecordInput {
 }
 
 export async function upsertPlayer(input: PlayerRecordInput) {
+  // Synced fields only. status and contractExpiry are owned by refreshContractState
+  // and must survive a sync (D-011, D-025).
+  const synced = {
+    name: input.name,
+    position: input.position,
+    age: input.age ?? null,
+    prevTeam: input.prevTeam ?? null,
+    retroId: input.retroId ?? null,
+    birthDate: input.birthDate ?? null,
+    war: input.war ?? null,
+    season: input.season ?? null,
+    obp: input.obp ?? null,
+    slg: input.slg ?? null,
+    ops: input.ops ?? null,
+    era: input.era ?? null,
+    whip: input.whip ?? null,
+    ip: input.ip ?? null,
+    k9: input.k9 ?? null,
+    fip: input.fip ?? null,
+  };
   return prisma.player.upsert({
     where: { mlbId: input.mlbId },
-    create: {
-      mlbId: input.mlbId,
-      name: input.name,
-      position: input.position,
-      age: input.age ?? null,
-      prevTeam: input.prevTeam ?? null,
-      war: input.war ?? null,
-      season: input.season ?? null,
-      status: input.status ?? "unsigned",
-      contractExpiry: input.contractExpiry ?? null,
-      obp: input.obp ?? null,
-      slg: input.slg ?? null,
-      ops: input.ops ?? null,
-      era: input.era ?? null,
-      whip: input.whip ?? null,
-      ip: input.ip ?? null,
-      k9: input.k9 ?? null,
-      fip: input.fip ?? null,
-    },
-    // Synced fields only. status and contractExpiry are owned by refreshContractState
-    // and must survive a sync (D-011, D-025).
-    update: {
-      name: input.name,
-      position: input.position,
-      age: input.age ?? null,
-      prevTeam: input.prevTeam ?? null,
-      war: input.war ?? null,
-      season: input.season ?? null,
-      obp: input.obp ?? null,
-      slg: input.slg ?? null,
-      ops: input.ops ?? null,
-      era: input.era ?? null,
-      whip: input.whip ?? null,
-      ip: input.ip ?? null,
-      k9: input.k9 ?? null,
-      fip: input.fip ?? null,
-    },
+    create: { mlbId: input.mlbId, ...synced },
+    update: synced,
   });
+}
+
+/** Cached Chadwick ids for players that already have both a Retrosheet id and a birth date. */
+export async function getKnownPlayerIds(mlbIds: number[]): Promise<Map<number, { retroId: string; birthDate: Date }>> {
+  const rows = await prisma.player.findMany({
+    where: { mlbId: { in: mlbIds }, retroId: { not: null }, birthDate: { not: null } },
+    select: { mlbId: true, retroId: true, birthDate: true },
+  });
+  return new Map(rows.map((r) => [r.mlbId, { retroId: r.retroId!, birthDate: r.birthDate! }]));
 }
 
 export async function getPlayerByMlbId(mlbId: number) {

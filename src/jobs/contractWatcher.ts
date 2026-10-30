@@ -2,9 +2,9 @@ import type { PlayerConfig } from "../config/loadPlayers";
 import { upcomingSeason } from "../contracts";
 import { refreshContractState, saveTransactionSigning } from "../store/playerStore";
 
+// Only use of the MLB Stats API: detect signings once a day (D-027).
 const mlbAPIBase = "https://statsapi.mlb.com/api/v1";
 const requestDelayMs = 200;
-const contractWatchIntervalMs = 30 * 60 * 1000;
 
 interface Transaction {
   id: number;
@@ -50,10 +50,4 @@ export async function runContractWatch(players: PlayerConfig[], today: Date = ne
       console.warn(`Contract watch failed for ${p.name}:`, err);
     }
   }
-}
-
-export function startContractWatcher(players: PlayerConfig[], intervalMs: number = contractWatchIntervalMs) {
-  const run = () => runContractWatch(players).catch((err) => console.error("Contract watch failed:", err));
-  void run();
-  setInterval(run, intervalMs).unref();
 }
