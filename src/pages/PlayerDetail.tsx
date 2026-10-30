@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchPlayer } from "../api/client";
+import { fmtMoney, fmtStatus, fmtTerms } from "../format";
 import type { PlayerDashboard } from "../models";
 
 function fmtWar(war: number | null): string {
@@ -129,17 +130,35 @@ export function PlayerDetail({ mlbId, onBack }: { mlbId: number; onBack: () => v
           </>
         )}
 
-        <h2>Status</h2>
+        <h2>Contract</h2>
+        <p>Status: <span className={`badge ${p.status}`}>{fmtStatus(p.status)}</span></p>
         {contract ? (
           <div className="contract-card">
-            <p><strong>Signed with:</strong> {contract.team}</p>
-            {contract.years != null ? <p><strong>Years:</strong> {contract.years}</p> : null}
-            {contract.totalValue != null ? <p><strong>Total Value:</strong> ${contract.totalValue}M</p> : null}
-            {contract.aav != null ? <p><strong>AAV:</strong> ${contract.aav}M</p> : null}
+            <p><strong>Team:</strong> {contract.team}</p>
+            <p>
+              <strong>Terms:</strong> {fmtTerms(contract)}
+              {contract.aav != null ? ` (${fmtMoney(contract.aav)} AAV)` : null}
+            </p>
+            {contract.firstSeason != null && contract.years != null ? (
+              <p>
+                <strong>Seasons:</strong> {contract.firstSeason}–{contract.firstSeason + contract.years - 1}
+                {contract.optedOutAfter != null ? ` (opted out after ${contract.optedOutAfter})` : null}
+              </p>
+            ) : null}
+            {p.contractExpiry != null ? <p><strong>Contract through:</strong> {p.contractExpiry}</p> : null}
             <p><strong>Signed:</strong> {contract.signedDate ?? "-"}</p>
+            {contract.notes ? <p><strong>Notes:</strong> {contract.notes}</p> : null}
+            <p>
+              <strong>Source:</strong>{" "}
+              {contract.source ? (
+                <a href={contract.source} target="_blank" rel="noreferrer">{new URL(contract.source).hostname}</a>
+              ) : (
+                "MLB transaction (terms not entered yet)"
+              )}
+            </p>
           </div>
         ) : (
-          <p>Status: <span className={`badge ${p.status}`}>{p.status}</span></p>
+          <p>No contract on file.</p>
         )}
 
         <h2>Prediction</h2>

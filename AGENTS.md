@@ -23,7 +23,9 @@ This is an LLM test project scaffolded by LongCat 2.5 (opencode provider). The c
 src/server/index.ts      → Express app: mounts /api routes, serves dist/ SPA, starts background jobs
 src/routes/api.ts        → Express router (players API)
 src/store/               → Prisma query functions (playerStore.ts)
-src/jobs/                → statsSync.ts (startup + every 6h), contractWatcher.ts (every 30m), runSync.ts (one-shot CLI)
+src/jobs/                → statsSync.ts (startup + every 6h), curatedContracts.ts (startup), contractWatcher.ts (every 30m), runSync.ts (one-shot CLI)
+src/contracts.ts         → Rules: current contract, status, expiry (D-025)
+src/format.ts            → SPA formatters for money, contract terms, status
 src/models.ts            → TS types: Player, Contract, Rumor, Prediction, PlayerDashboard
 src/db/prisma.ts         → Prisma client singleton
 src/config/              → loadPlayers.ts (YAML → config)
@@ -39,8 +41,10 @@ data/tracker.db          → SQLite file (created by `npm run db:push`, git-igno
 ## Key Patterns
 
 - **Read-only dashboard:** No forms, no user input. Only background workers write to DB.
-- **Curated config:** `config/players.yaml` defines which players to track. Add/remove players there, then run `npm run sync`.
-- **Background sync:** `jobs/statsSync` runs on startup + every 6 hours; `jobs/contractWatcher` every 30 minutes. Rate-limited to ~5 req/sec.
+- **Curated config:** `config/players.yaml` defines which players to track and each player's current `contract:` (terms copied from public reporting, with a `source` URL — D-024). Add/remove players or edit contracts there, then run `npm run sync`. Players removed from the YAML are deleted from the database on sync.
+- **Background sync:** `jobs/statsSync` runs on startup + every 6 hours, then curated contracts are applied; `jobs/contractWatcher` records new `SFA` signings every 30 minutes. Rate-limited to ~5 req/sec.
+- **Contract state:** status and contract expiry are derived from the current contract by `refreshContractState` only (D-025). Don't write them anywhere else.
+- **Data licensing:** This is a public project. Only use sources whose terms allow republishing; FanGraphs, Spotrac, Cot's and Baseball-Reference don't (D-024, D-026).
 - **ORM:** Prisma. Query functions live in `src/store/` — don't scatter Prisma calls across handlers/routes.
 - **Frontend:** React SPA + JSON API (Express serves `dist/` in production). Dev via Vite proxy `/api → localhost:8780`.
 
@@ -55,7 +59,8 @@ make clean     # Remove node_modules, dist/ and data/ (database)
 
 ## Known Issues
 
-- WAR and wRC+ are not available from the MLB Stats API — the WAR column is always empty until a source is picked.
+- WAR and wRC+ have no openly licensed source — the WAR column stays empty (P1-005).
+- MLB Stats API terms allow only "individual, non-commercial, non-bulk use"; replacement planned in P1-007 (D-026).
 
 ## Conventions
 
@@ -71,8 +76,8 @@ make clean     # Remove node_modules, dist/ and data/ (database)
 
 ## Data Sources
 
-- **MLB Stats API** (`statsapi.mlb.com`): Primary source for player stats. Free, no auth, rate-limited.
-- **Curated YAML**: Player list maintained manually in `config/players.yaml`.
+- **MLB Stats API** (`statsapi.mlb.com`): Player stats and signing transactions. Free, no auth, rate-limited; see D-026 for its usage terms.
+- **Curated YAML**: Player list and current contracts maintained manually in `config/players.yaml`.
 
 ## Future Phases (see README for full roadmap)
 

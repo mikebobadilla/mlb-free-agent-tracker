@@ -4,6 +4,7 @@ import { apiRouter } from "../routes/api";
 import { loadPlayers } from "../config/loadPlayers";
 import { startStatsSync } from "../jobs/statsSync";
 import { startContractWatcher } from "../jobs/contractWatcher";
+import { syncCuratedContracts } from "../jobs/curatedContracts";
 
 const app = express();
 app.use(express.json());
@@ -28,6 +29,7 @@ if (process.env.NODE_ENV !== "test") {
 async function main() {
   const players = await loadPlayers();
   await startStatsSync(players);
+  await syncCuratedContracts(players);
   startContractWatcher(players);
 }
 

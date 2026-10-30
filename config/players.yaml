@@ -1,45 +1,137 @@
+# Curated player list. Each player may carry a `contract:` block with the terms of
+# their current deal, copied by hand from public reporting (D-024):
+#   team, years, total (guaranteed USD), first_season, signed (YYYY-MM-DD), source (URL),
+#   optional opted_out_after (season) and notes.
 players:
   - name: Juan Soto
     position: OF
     mlb_id: 665742
     prev_team: Yankees
+    contract:
+      team: New York Mets
+      years: 15
+      total: 765000000
+      first_season: 2025
+      signed: 2024-12-11
+      notes: Full no-trade clause, $75M signing bonus, no deferrals. Opt-out after 2029 that the Mets can void by raising the last 10 years to $55M per year.
+      source: https://www.mlb.com/news/juan-soto-agrees-to-contract-with-mets
   - name: Corbin Burnes
     position: SP
     mlb_id: 669203
     prev_team: Orioles
+    contract:
+      team: Arizona Diamondbacks
+      years: 6
+      total: 210000000
+      first_season: 2025
+      signed: 2024-12-30
+      notes: Opt-out after 2026; decision due 2026-11-02.
+      source: https://www.mlb.com/news/corbin-burnes-contract-with-d-backs
   - name: Alex Bregman
     position: 3B
     mlb_id: 608324
     prev_team: Astros
+    contract:
+      team: Chicago Cubs
+      years: 5
+      total: 175000000
+      first_season: 2026
+      signed: 2026-01-14
+      notes: No opt-outs, full no-trade clause, $70M deferred. Previously opted out of a 3-year, $120M Red Sox deal after 2025.
+      source: https://www.mlb.com/news/alex-bregman-cubs-contract
   - name: Willy Adames
     position: SS
-    mlb_id: 666182
+    mlb_id: 642715
     prev_team: Brewers
+    contract:
+      team: San Francisco Giants
+      years: 7
+      total: 182000000
+      first_season: 2025
+      signed: 2024-12-10
+      source: https://www.mlb.com/news/willy-adames-giants-contract
   - name: Pete Alonso
     position: 1B
     mlb_id: 624413
     prev_team: Mets
+    contract:
+      team: Baltimore Orioles
+      years: 5
+      total: 155000000
+      first_season: 2026
+      signed: 2025-12-11
+      notes: Partial no-trade clause.
+      source: https://www.mlb.com/news/pete-alonso-orioles-contract
   - name: Blake Snell
     position: SP
     mlb_id: 605483
     prev_team: Dodgers
+    contract:
+      team: Los Angeles Dodgers
+      years: 5
+      total: 182000000
+      first_season: 2025
+      signed: 2024-11-30
+      notes: $52M signing bonus plus deferred money.
+      source: https://www.mlb.com/press-release/press-release-dodgers-sign-two-time-cy-young-award-winner-blake-snell
   - name: Max Fried
     position: SP
-    mlb_id: 608337
+    mlb_id: 608331
     prev_team: Braves
+    contract:
+      team: New York Yankees
+      years: 8
+      total: 218000000
+      first_season: 2025
+      signed: 2024-12-17
+      notes: $20M signing bonus.
+      source: https://www.ksat.com/sports/2024/12/17/left-hander-max-fried-and-yankees-finalize-218-million-8-year-contract
   - name: Teoscar Hernandez
     position: OF
     mlb_id: 606192
     prev_team: Dodgers
+    contract:
+      team: Los Angeles Dodgers
+      years: 3
+      total: 66000000
+      first_season: 2025
+      signed: 2025-01-03
+      notes: $15M club option for 2028. $23M signing bonus, deferred.
+      source: https://www.mlb.com/news/teoscar-hernandez-contract-with-dodgers
   - name: Adrian Morejon
     position: RP
     mlb_id: 670970
     prev_team: Padres
+    contract:
+      team: San Diego Padres
+      years: 1
+      total: 3900000
+      first_season: 2026
+      signed: 2026-01-08
+      notes: One-year deal to avoid arbitration in his final arbitration year.
+      source: https://www.mlb.com/news/padres-arbitration-deadline-2026
   - name: Michael King
     position: SP
     mlb_id: 650633
     prev_team: Padres
+    contract:
+      team: San Diego Padres
+      years: 3
+      total: 75000000
+      first_season: 2026
+      signed: 2025-12-19
+      opted_out_after: 2026
+      notes: Opted out after 2026 per sources (https://www.mlb.com/news/michael-king-free-agent-2027); the club has not confirmed.
+      source: https://www.mlb.com/news/michael-king-padres-contract
   - name: Ty France
     position: 1B
     mlb_id: 664034
     prev_team: Padres
+    contract:
+      team: San Diego Padres
+      years: 1
+      total: 1350000
+      first_season: 2026
+      signed: 2026-02-16
+      notes: Minor-league deal with a spring training invite; $1.35M is his 2026 salary, not a guarantee.
+      source: https://www.spokesman.com/stories/2026/aug/29/ty-france-signed-a-bargain-contract-now-hes-paying

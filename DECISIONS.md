@@ -152,7 +152,7 @@ it belongs here.
 
 ## D-020 — Contract expiry is a DB-only year set through the store
 - **Date:** 2026-10-13
-- **Status:** ACCEPTED
+- **Status:** SUPERSEDED by D-025 (expiry is now derived from the current contract)
 - **Cards:** P3-004
 - **Context:** P3-004 needs each player's contract expiration year. P3-004 cited this entry but it was never written; backfilled on 2026-10-29 from commits `bea9c24` and `c41a161`. (D-015 to D-019 are used by the unmerged P3-001 branches, which is why main skips them.)
 - **Decision:** Store the year as a nullable integer `contract_expiry` on `players`, written only through `SetContractExpiry(playerID, year)`, not via `players.yaml`. The Go sync CLI set 2026 for Morejon, King and France.
@@ -185,3 +185,34 @@ it belongs here.
 - **Decision:** Feature work still happens on `feature/*` branches in worktrees (D-001). Once `npm test` passes, the agent merges the branch into `main`, pushes, and sets the card to DONE. A PR is optional.
 - **Alternatives:** Keep human-only merges, which leaves finished work sitting on branches.
 - **Consequences:** `npm test` is the only gate before `main`, so the tests have to catch regressions.
+
+## D-024 — Contract terms are curated in players.yaml from public reporting
+- **Date:** 2026-10-29
+- **Status:** ACCEPTED
+- **Cards:** P3-006, P3-004
+- **Context:** The maintainer wants each player's current contract. This is a public project, so data must be legal to republish. Checked: the MLB Stats API has no terms (`/people` hydrates `contract`/`contracts`/`currentContract` return nothing; transactions only say "New York Mets signed free agent RF Juan Soto."). FanGraphs' RosterResource has the terms, but its ToS says "Any unauthorized reproduction, publication, further distribution or public exhibition … is strictly prohibited". Cot's Contracts sits behind an anti-bot wall, Spotrac returns 403, and the FanGraphs Excel export is members-only.
+- **Decision:** Each player in `config/players.yaml` may carry a `contract:` block (team, years, total, first_season, signed, source URL, optional opted_out_after and notes), entered by hand from public news or team press releases. `source` is required and shown on the player page. Only the facts are copied, never article text.
+- **Alternatives:** Scrape FanGraphs/Spotrac/Cot's (terms or access controls forbid it); show signings without terms (loses the main thing the maintainer wants).
+- **Consequences:** Terms update when someone edits the YAML. The contract watcher still records signings, and the UI shows "terms not entered" until the YAML catches up. P1-005's FanGraphs and Baseball-Reference options are ruled out for the same reason.
+
+## D-025 — Current contract, status and expiry are derived in one place
+- **Date:** 2026-10-29
+- **Status:** ACCEPTED
+- **Cards:** P3-006, P3-004, P3-001
+- **Context:** Contracts now come from two places (curated YAML and MLB transactions). The old watcher marked every player signed using their first-ever transaction (e.g. Morejon "signed" with the Padres in 2016), and `getDashboardData` showed an arbitrary contract row.
+- **Decision:** `src/contracts.ts` holds the rules. The offseason starts Oct 1, after which signings and status refer to next season. The current contract is the one starting in the latest season; for the same season, curated terms beat a bare transaction. Expiry is the opt-out season, else first_season + years − 1. Status is `signed` if the current contract covers the upcoming season, otherwise `unsigned` (shown as "free agent"). `refreshContractState` is the only writer of `status` and `contractExpiry`. The watcher only records `SFA` transactions dated since the offseason started, once per transaction id, and logs per-player failures instead of crashing. Players removed from `players.yaml` are deleted with their contracts, rumors and predictions on sync.
+- **Alternatives:** Keep a hand-set expiry (D-020), which drifts from the contract; let the watcher set status directly, which reintroduced the 2016-signing bug.
+- **Consequences:** The manual `negotiating` status has no writer and would be overwritten. Old watcher rows without a transaction id stay in existing databases but never win, because they start in long-past seasons.
+
+## D-026 — MLB Stats API terms restrict public use; open replacement identified
+- **Date:** 2026-10-29
+- **Status:** REVISIT
+- **Cards:** P1-007, P1-005
+- **Context:** Every MLB Stats API response points to http://gdx.mlb.com/components/copyright.txt: "Only individual, non-commercial, non-bulk use of the Materials is permitted and any other use of the Materials is prohibited without prior written authorization from MLBAM." A public site arguably isn't "individual" use. Researched open alternatives:
+  - Retrosheet allows "any desired use" if a fixed notice is shown prominently. It publishes per-game CSVs (no season tables) about a month after the season: 2024 on 2024-12-03, 2025 on 2025-11-27. 2026 isn't out yet.
+  - Lahman (CC BY-SA 3.0) has season tables but lags by 2–9 months (2025 data released 2026-01-02), has no MLBAM ids, and is share-alike.
+  - The Chadwick register (ODC-By) maps MLBAM ↔ Retrosheet ids and has birth dates; updated about monthly.
+  - Sports Reference forbids building sites "based on data you scrape". No openly licensed WAR exists.
+- **Decision:** Keep the MLB Stats API for now and plan the replacement as P1-007 (Retrosheet stats + Chadwick ids/birth dates, with the required attribution notices).
+- **Alternatives:** Ask MLBAM for written permission; limit the API to change detection only.
+- **Consequences:** Open sources lag the season by about a month, so the dashboard would show 2025 stats until Retrosheet publishes 2026. The contract watcher still depends on MLB transactions, which have no open equivalent.
