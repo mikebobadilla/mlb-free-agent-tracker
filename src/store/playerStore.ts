@@ -43,6 +43,8 @@ export async function upsertPlayer(input: PlayerRecordInput) {
       k9: input.k9 ?? null,
       fip: input.fip ?? null,
     },
+    // Synced fields only. status (contract watcher) and contractExpiry
+    // (setContractExpiry) are owned elsewhere and must survive a sync (D-011).
     update: {
       name: input.name,
       position: input.position,
@@ -50,8 +52,6 @@ export async function upsertPlayer(input: PlayerRecordInput) {
       prevTeam: input.prevTeam ?? null,
       war: input.war ?? null,
       season: input.season ?? null,
-      status: input.status ?? "unsigned",
-      contractExpiry: input.contractExpiry ?? null,
       obp: input.obp ?? null,
       slg: input.slg ?? null,
       ops: input.ops ?? null,
@@ -107,8 +107,8 @@ export async function setContractExpiry(playerId: number, year: number) {
   });
 }
 
-export async function getDashboardData(playerIds?: number[]): Promise<PlayerDashboard[]> {
-  const where = playerIds && playerIds.length > 0 ? { id: { in: playerIds } } : undefined;
+export async function getDashboardData(mlbIds?: number[]): Promise<PlayerDashboard[]> {
+  const where = mlbIds && mlbIds.length > 0 ? { mlbId: { in: mlbIds } } : undefined;
   const players = await prisma.player.findMany({
     where,
     include: { contracts: true, rumors: true, predictions: true },

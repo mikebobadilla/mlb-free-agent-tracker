@@ -3,6 +3,7 @@ import type { PlayerConfig } from "../config/loadPlayers";
 
 const mlbAPIBase = "https://statsapi.mlb.com/api/v1";
 const requestDelayMs = 200;
+const statsSyncIntervalMs = 6 * 60 * 60 * 1000;
 const fipConstant = 3.1;
 
 interface FlexFloat {
@@ -136,4 +137,17 @@ export async function runStatsSync(players: PlayerConfig[]): Promise<void> {
       fip: stats?.fip ?? null,
     });
   }
+}
+
+// Sync once, then every intervalMs. A failed scheduled run is logged and the
+// next one still happens; the initial run's error goes to the caller.
+export async function startStatsSync(
+  players: PlayerConfig[],
+  intervalMs: number = statsSyncIntervalMs,
+): Promise<void> {
+  await runStatsSync(players);
+  const timer = setInterval(() => {
+    runStatsSync(players).catch((err) => console.error("Stats sync failed:", err));
+  }, intervalMs);
+  timer.unref();
 }
