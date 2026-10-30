@@ -17,7 +17,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-005 | Source WAR and wRC+ | GROOMING | — | D-007, D-009 |
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
 | P3-004 | Track contract expiration dates | IN REVIEW | feature/P3-004-contract-expiry | D-020 |
-| P3-005 | Rewrite backend and frontend in Node.js | IN REVIEW | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
+| P3-005 | Rewrite backend and frontend in Node.js | DONE | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -38,8 +38,8 @@ All other cards (Phases 2–7) are NOT STARTED.
 1. **Groom:** fill in the card's Approach, Acceptance criteria and Open questions. Every answered question becomes an entry in DECISIONS.md. Card moves to READY when there are no open questions.
 2. **Build:** create or reuse a `feature/<desc>` branch in a git worktree (D-001). Set the card to IN PROGRESS and fill in Branch.
 3. **Test:** add tests for the change; `npm test` must pass (D-008, D-022).
-4. **Push:** commit with the card ID in the message, push, and set the card to IN REVIEW. The PR is opened and merged by a human.
-5. **Done:** after merge, set the card to DONE.
+4. **Push:** commit with the card ID in the message, push, and set the card to IN REVIEW.
+5. **Merge:** once `npm test` passes, merge the branch into `main`, push `main`, and set the card to DONE (D-023). A PR is optional.
 
 Cards gain the full template below when they're groomed. Ungroomed cards keep the short form.
 
@@ -185,7 +185,7 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Approach:** Track team payroll totals, luxury tax thresholds. Update as contracts are logged. Show team payroll summary on dashboard.
 - **Files:** `internal/db/schema.sql`, `internal/store/store.go`, `web/templates/dashboard.html` (or new team view)
 
-### [IN REVIEW] Rewrite backend and frontend in Node.js
+### [DONE] Rewrite backend and frontend in Node.js
 - **ID:** P3-005
 - **Branch / PR:** feature/P3-005-node-rewrite, feature/post-rewrite-fixes / —
 - **Problem:** The maintainer does not understand Go and wants the tracker built in Node.js with Prisma.
