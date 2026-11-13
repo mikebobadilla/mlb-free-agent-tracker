@@ -448,3 +448,17 @@ Go-era decisions for P3-001 (signing detection), recorded from the `feature/P3-0
   - A status write that fails is logged (`Could not record sync status:`) and swallowed; a status read that fails returns a 500 with a generic body and logs the error.
 - **Alternatives:** Keep the CLI out of the status (it would then disagree with the data it just refreshed); leave the "failed" copy (wrong when nothing failed, the cron simply did not run).
 - **Consequences:** `markSyncFailure` logs the full error, and callers (`startNightlySync`, `runSync.ts`) also log it, so a failed sync appears twice in the logs.
+
+## D-040 — Cron route details: digest compare, a failed attempt also arms the overlap guard
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-04
+- **Context:** D-036 fixed the route's contract. Building it left a few details open.
+- **Decision:**
+  - The `Authorization` header is compared by SHA-256 digest with `crypto.timingSafeEqual`, so the buffers are always the same length and neither the secret's length nor a matching prefix leaks. An unset or empty `CRON_SECRET` is always 401.
+  - The overlap guard reads `lastAttemptAt`, which `markSyncAttempt` and `markSyncFailure` both set. So a failed run (including a failed `loadPlayers`) also blocks a second call for 10 minutes, and that call answers `{ ok: true, skipped: true }`. A retry after a failure is therefore the next cron tick or a call after 10 minutes, not an immediate redelivery. A `lastAttemptAt` in the future (clock skew) does not count as recent.
+  - If the status read for the guard fails, the route answers 500 `{ ok: false }` and does not sync; it cannot tell whether a sync is running.
+  - `/api/cron` is mounted before `/api` in `src/app.ts`; `src/server/index.ts` adds static files and the `*` fallback after both, so `POST /api/cron/sync` is a 404 and never reaches the SPA fallback.
+- **Alternatives:** `===` on the strings (timing leak); syncing anyway when the guard's read fails (could double-run).
+- **Consequences:** Supersedes nothing. D-038's retry story for serverless still needs its own card.
+- **Addendum (file-name clash):** `src/app.ts` and the SPA's `src/App.tsx` differ only in case and extension. On a case-insensitive disk (macOS default), the extensionless `./App` import in `src/main.tsx` resolved to `app.ts`, which broke `tsc` and `vite build`. `main.tsx` now imports `./App.tsx` with the extension, and `tsconfig.json` sets `allowImportingTsExtensions` (valid with `noEmit`). The Express module keeps the name `src/app.ts` that D-036 and H-05 use. Do not add another extensionless `./App` or `./app` import under `src/`.
