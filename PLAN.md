@@ -1,6 +1,6 @@
 # MLB Free Agent Tracker — Feature Plan
 
-Last updated: 2026-10-29
+Last updated: 2026-11-13
 
 Decisions behind these cards are logged in [DECISIONS.md](DECISIONS.md).
 
@@ -21,6 +21,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P3-005 | Rewrite backend and frontend in Node.js | DONE | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
 | P3-006 | Current contracts with terms | DONE | feature/curated-contracts | D-024, D-025 |
 | P3-007 | Track the 2026-27 free-agent class | DONE | feature/fa-class-2027 | D-028 |
+| W-01 | Guard against empty/mis-keyed players.yaml wiping the database | IN REVIEW | feature/yaml-data-loss-guard | D-029 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
