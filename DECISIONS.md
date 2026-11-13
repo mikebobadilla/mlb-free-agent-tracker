@@ -389,3 +389,15 @@ it belongs here.
   - No `POST /api/sync` and no new endpoint. `npm run sync` stays the manual way to force a sync from the CLI, but it runs in another process and does not update a running server's status (D-032).
 - **Alternatives:** `POST /api/sync` (breaks the read-only constraint, needs an auth story, and the app is unauthenticated); a fixed 15 min retry (up to 96 Retrosheet downloads a day during a long outage, hence the cap at 1 h); a file watcher on `players.yaml` (more moving parts, doesn't help network failures); a CLI that signals the running server (needs IPC, not worth it for one owner).
 - **Consequences:** Supersedes the "no sync is scheduled / needs a restart" part of D-031. A changed `players.yaml` is also picked up at the next daily tick without a restart (side effect of re-reading each attempt). A persistent failure (for example a player that always errors) now retries hourly forever; the status API and banner show it. If a manual trigger is wanted later, add it as a CLI command, not an HTTP route. The in-process retry applies only to the local long-running server. It does not carry over to the serverless deployment (D-036, D-037), where sync runs as a Vercel cron route and no timer survives between invocations; the H-cards need their own retry story (the cron cadence, for example a more frequent schedule plus the overlap guard).
+
+## D-039 — With status in the database, a CLI sync updates it; the banner names a stale sync
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-03
+- **Context:** D-037 moved the sync status into the `SyncStatus` row. Two side effects follow that D-037 did not spell out.
+- **Decision:**
+  - `npm run sync` runs `runSyncCycle`, which writes the same row, so a CLI sync now updates the status that a running server or the deployed site reports. This replaces the last clause of D-038 ("does not update a running server's status"). It does not set `scheduled`, which stays per process.
+  - `ok` is false when the last success is missing or 48 hours old even with no error, so the banner can show with `lastError` null. `SyncBanner` then reads "The data sync has not succeeded recently." instead of "The last data sync failed." (one copy tweak in `src/App.tsx`; the response shape and the component's logic are otherwise unchanged).
+  - A status write that fails is logged (`Could not record sync status:`) and swallowed; a status read that fails returns a 500 with a generic body and logs the error.
+- **Alternatives:** Keep the CLI out of the status (it would then disagree with the data it just refreshed); leave the "failed" copy (wrong when nothing failed, the cron simply did not run).
+- **Consequences:** `markSyncFailure` logs the full error, and callers (`startNightlySync`, `runSync.ts`) also log it, so a failed sync appears twice in the logs.

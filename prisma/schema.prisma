@@ -78,3 +78,12 @@ model Prediction {
   notes         String?
   createdAt     DateTime @default(now())
 }
+
+// One row, id always 1 (D-037): when the sync last tried, last succeeded, and why it last failed.
+model SyncStatus {
+  id            Int       @id
+  lastAttemptAt DateTime?
+  lastSuccessAt DateTime?
+  lastError     String?
+  updatedAt     DateTime  @updatedAt
+}

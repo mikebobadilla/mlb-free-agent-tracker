@@ -33,7 +33,13 @@ export function SyncBanner() {
   if (!status || status.ok) return null;
   return (
     <div className="sync-banner" role="alert">
-      <strong>{status.scheduled ? "The last data sync failed." : "The nightly data sync is not running."}</strong>{" "}
+      <strong>
+        {!status.scheduled
+          ? "The nightly data sync is not running."
+          : status.lastError
+            ? "The last data sync failed."
+            : "The data sync has not succeeded recently."}
+      </strong>{" "}
       Data below may be out of date.
       {status.lastError && <> Error: {status.lastError}</>}
       {status.lastSuccessAt && <> Last good sync: {new Date(status.lastSuccessAt).toLocaleString()}.</>}

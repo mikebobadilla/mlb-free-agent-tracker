@@ -16,16 +16,16 @@ export function retryDelayMs(consecutiveFailures: number): number {
 
 /** Retrosheet stats, then curated contracts, then this offseason's MLB signings (D-027). */
 export async function runSyncCycle(players: PlayerConfig[], today: Date = new Date()): Promise<void> {
-  markSyncAttempt();
+  await markSyncAttempt();
   try {
     await runStatsSync(players, today);
     await syncCuratedContracts(players, today);
     await runContractWatch(players, today);
   } catch (err) {
-    markSyncFailure(err);
+    await markSyncFailure(err);
     throw err;
   }
-  markSyncSuccess();
+  await markSyncSuccess();
 }
 
 export type ScheduleOptions = {
@@ -52,7 +52,7 @@ export async function startNightlySync(opts: ScheduleOptions = {}): Promise<void
       try {
         players = await load();
       } catch (err) {
-        markSyncFailure(err); // runSyncCycle records its own failures
+        await markSyncFailure(err); // runSyncCycle records its own failures
         throw err;
       }
       await runSyncCycle(players);

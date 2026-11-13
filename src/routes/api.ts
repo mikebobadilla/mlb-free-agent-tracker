@@ -4,8 +4,13 @@ import { getDashboardData } from "../store/playerStore";
 
 export const apiRouter = Router();
 
-apiRouter.get("/sync-status", (_req, res) => {
-  res.json(getSyncStatus());
+apiRouter.get("/sync-status", async (_req, res) => {
+  try {
+    res.json(await getSyncStatus());
+  } catch (err) {
+    console.error("Could not read sync status:", err);
+    res.status(500).json({ error: "Could not read the sync status" });
+  }
 });
 
 apiRouter.get("/players", async (_req, res) => {
