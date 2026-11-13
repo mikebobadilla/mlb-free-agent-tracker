@@ -15,7 +15,7 @@ npm install
 cp .env.example .env    # DATABASE_URL for the SQLite file
 npm run db:push         # create data/tracker.db from prisma/schema.prisma
 npm run build           # build the SPA to dist/
-make server             # API + SPA on :8780, plus background sync
+make server             # API + SPA on :8780, plus background sync (rebuilds dist/ first if src/ is newer)
 ```
 
 Then open http://localhost:8780
