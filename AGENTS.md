@@ -66,7 +66,7 @@ make clean     # Remove node_modules, dist/ and data/ (database)
 
 ## Conventions
 
-- **Worktree workflow:** All feature work must be done on a new branch in a git worktree. Never work directly on `main`. Branch naming: `feature/<short-description>`.
+- **Worktree workflow:** All feature work must be done on a new branch in a git worktree. Branch naming: `feature/<short-description>`.
 - **Planning:** `PLAN.md` holds the cards and a status board — follow its Workflow section and update the board in the same commit as any status change.
 - **Decisions:** Record every non-obvious decision (scope, approach, data source, workflow, or a discovery that changes a card) as a new entry in `DECISIONS.md`. Never delete entries; supersede them.
 - **Tests:** Every change ships with tests. Test API code with vitest + supertest against an in-process Express app, not the live API. `npm test` must pass before pushing.
