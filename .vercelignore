@@ -1,0 +1,14 @@
+# Keeps local data, secrets and build output out of the Vercel upload (D-036).
+# Vercel reinstalls node_modules and rebuilds dist/ itself.
+node_modules/
+data/
+.worktrees/
+.claude/
+bin/
+docker/
+dist/
+.vercel/
+.git/
+*.db
+.env
+.env.local

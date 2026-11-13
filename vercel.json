@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api" }],
+  "functions": {
+    "api/index.ts": { "includeFiles": "config/**" }
+  },
+  "crons": [{ "path": "/api/cron/sync", "schedule": "0 12 * * *" }]
+}
