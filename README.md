@@ -112,8 +112,10 @@ mlb-tracker/
 ├── prisma/migrations/         # SQL migrations, applied with `npm run db:migrate`
 ├── docker-compose.yml         # Local Postgres 17 (`npm run db:up`)
 ├── src/
-│   ├── server/index.ts        # Express app: /api + dist/, starts background jobs
+│   ├── app.ts                 # Express app + /api routes; does nothing on import (D-036)
+│   ├── server/index.ts        # Local/Node entry: adds dist/ + SPA fallback, listens, starts background jobs
 │   ├── routes/api.ts          # JSON API
+│   ├── routes/cron.ts         # GET /api/cron/sync (CRON_SECRET)
 │   ├── store/                 # Prisma queries
 │   ├── jobs/                  # statsSync, contractWatcher, runSync (CLI)
 │   ├── config/                # YAML loader
@@ -167,12 +169,14 @@ Environment (`.env`):
 - `DIRECT_URL` — Postgres connection string Prisma uses for schema changes (`db:migrate`, `db:push`); the same as `DATABASE_URL` locally, a direct or session-pooler connection on Supabase
 - `TEST_DATABASE_URL` — optional, tests only; export it in your shell to override the default `mlb_tracker_test` database on the local container (vitest does not read `.env`)
 - `PORT` — HTTP port (default `8780`)
+- `CRON_SECRET` — secret for `GET /api/cron/sync`; the route answers `401` unless it is set and the request sends `Authorization: Bearer <CRON_SECRET>`. Vercel sends that header to cron routes when the variable is set. Pick a long random value (`openssl rand -hex 32`); never commit it
 
 ## API
 
 - `GET /api/players` — JSON list of all players with contract, rumors and prediction
 - `GET /api/players/{mlbId}` — one player, `404` if not tracked
 - `GET /api/sync-status` — `{ scheduled, lastAttemptAt, lastSuccessAt, lastError, ok }`, read from the `SyncStatus` row (D-037); `ok` is false when the sync is not scheduled, the last attempt failed, or the last success is missing or over 48 hours old. The SPA shows a banner when `ok` is false
+- `GET /api/cron/sync` — runs one sync cycle (stats, curated contracts, signings) and waits for it. Needs `Authorization: Bearer <CRON_SECRET>`. `401 {"error":"Unauthorized"}` without it (also when `CRON_SECRET` is unset); `200 {"ok":true,"durationMs":n}` on success; `200 {"ok":true,"skipped":true}` if a sync attempt started under 10 minutes ago; `500 {"ok":false}` on failure (details in the logs and `/api/sync-status`). Any 500 from `/api` has a generic body
 - Any other path serves the SPA from `dist/`
 
 ## Deployment

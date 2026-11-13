@@ -32,7 +32,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | H-01 | Local Postgres for dev and tests (docker-compose, port 54330) | DONE | feature/H-01-local-postgres | D-034 |
 | H-02 | Switch Prisma to Postgres, first migration, tests on Postgres | DONE | feature/H-02-postgres | D-034, D-035 |
 | H-03 | Persist sync status in the database | DONE | feature/H-03-sync-status-db | D-037, D-039 |
-| H-04 | Split the Express app from the server entry; `CRON_SECRET` sync route | READY | feature/H-04-app-split-cron | D-036 |
+| H-04 | Split the Express app from the server entry; `CRON_SECRET` sync route | DONE | feature/H-04-app-split-cron | D-036, D-040 |
 | H-05 | Vercel config: `api/index.ts`, `vercel.json` | READY | feature/H-05-vercel-config | D-036 |
 | H-06 | Provision Supabase + Vercel, migrate, deploy, first sync (owner input) | READY | feature/H-06-deploy-fixes | D-033, D-034, D-035 |
 | H-07 | Docs: README deployment, Supabase restart step, AGENTS.md | READY | feature/H-07-hosting-docs | D-033 |

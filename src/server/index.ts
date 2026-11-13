@@ -1,12 +1,11 @@
 import express from "express";
 import path from "node:path";
-import { apiRouter } from "../routes/api";
+import { app } from "../app";
 import { startNightlySync } from "../jobs/syncCycle";
 
-const app = express();
-app.use(express.json());
-app.use("/api", apiRouter);
-
+// Local and Node-host entry: the shared app (src/app.ts) plus static files, the SPA fallback,
+// the listener and the in-process sync timer. On Vercel, api/index.ts uses src/app.ts directly.
+// Static files and the fallback come after the /api routes, so they never shadow them.
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 app.get("*", (_req, res) => {

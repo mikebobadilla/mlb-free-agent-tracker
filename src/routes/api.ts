@@ -18,7 +18,8 @@ apiRouter.get("/players", async (_req, res) => {
     const dashboards = await getDashboardData();
     res.json(dashboards);
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    console.error("API error:", err);
+    res.status(500).json({ error: "Internal error" });
   }
 });
 
@@ -33,6 +34,7 @@ apiRouter.get("/players/:mlbId", async (req, res) => {
     }
     res.json(found);
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    console.error("API error:", err);
+    res.status(500).json({ error: "Internal error" });
   }
 });
