@@ -91,3 +91,8 @@ make clean     # Remove node_modules, dist/ and data/ (database)
 4. Contract prediction algorithm
 5. Dashboard enhancements (timeline, team needs, dark mode)
 6. Public sharing (deploy, email digest, RSS feed)
+
+## Agents and Tools Log
+
+- Any change that adds or changes an AI agent, model, or external tool used on this project must update the "Agents and tools used" section in `README.md` in the same commit.
+- Record only what the board and repo history show. If a model or tool is unknown, write "unknown" instead of guessing.
