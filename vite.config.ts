@@ -13,8 +13,8 @@ export default defineConfig({
     },
   },
   test: {
-    // Feature worktrees live under .claude/worktrees/; their tests belong to their own branches.
-    exclude: [...configDefaults.exclude, ".claude/**"],
+    // Feature worktrees live under .claude/worktrees/ and .worktrees/; their tests belong to their own branches.
+    exclude: [...configDefaults.exclude, ".claude/**", ".worktrees/**"],
     setupFiles: ["src/test/setupDb.ts"],
   },
 });

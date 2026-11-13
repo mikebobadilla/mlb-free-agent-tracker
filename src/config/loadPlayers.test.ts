@@ -23,6 +23,19 @@ describe("loadPlayers", () => {
     expect(players.length).toBeGreaterThan(0);
   });
 
+  it.each([
+    ["an empty file", ""],
+    ["only comments", "# nobody tracked yet\n"],
+    ["the wrong top-level key", "player:\n  - name: Test Player\n    position: SS\n    mlb_id: 1\n"],
+    ["an empty players list", "players: []\n"],
+    ["a null players key", "players:\n"],
+    ["players that is not a list", "players: Test Player\n"],
+  ])("refuses %s, naming the file and key", async (_label, yaml) => {
+    const file = writeConfig(yaml);
+    await expect(loadPlayers(file)).rejects.toThrow(file);
+    await expect(loadPlayers(file)).rejects.toThrow("`players`");
+  });
+
   it("keeps the signed date as text", async () => {
     const file = writeConfig(
       player(`      team: Padres

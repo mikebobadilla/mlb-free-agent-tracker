@@ -60,7 +60,7 @@ Cards are dispatched by the Kanban dispatcher, which runs inside the Hermes gate
 
 A running record of every AI agent, model and tool that has worked on this project, so the work can be shown. Only what the kanban board, Hermes session records and git history show is listed; anything not recorded is marked unknown. Last updated 2026-11-13.
 
-> **Rule:** any agent that adds a new tool or model to the project must update this section in the same commit. The same rule is in the agency docs (`~/dev/agency-docs/README.md`) and decision D-029.
+> **Rule:** any agent that adds a new tool or model to the project must update this section in the same commit. The same rule is in the agency docs (`~/dev/agency-docs/README.md`) and decision D-030.
 
 **Phase 1 — scaffold and build (2026-10-10 to 2026-10-30, 34 commits on `main`)**
 
@@ -77,7 +77,7 @@ All Hermes profiles run on provider `anthropic`. The model column is each profil
 | `researcher` | Product and competitor research; audit of `config/players.yaml` against option decisions (W-02) | `claude-haiku-5-5` | `claude-sonnet-5-5` (early attempts; the board shows them as crashed) |
 | `architect` | Codebase, architecture and data-model map | `claude-sonnet-5-5` | `claude-opus-5-5` (an early attempt; crashed) |
 | `frontend` | No work on this repo yet | `claude-sonnet-5-5` | none |
-| `backend` | Guard against an empty or mis-keyed `players.yaml` wiping the database (W-01, branch `feature/yaml-data-loss-guard`); vitest exclude for worktrees (branch `feature/vitest-exclude-worktrees`) | `claude-sonnet-5-5` | none |
+| `backend` | Guard against an empty or mis-keyed `players.yaml` wiping the database (W-01, merged via PR #6); vitest exclude for worktrees (merged via PR #5) | `claude-sonnet-5-5` | none |
 | `qa` | Test coverage and code-quality baseline | `claude-haiku-5-5` | `claude-sonnet-5-5` (early attempts; crashed) |
 | `devops` | Build, deploy and environment assessment | `claude-haiku-5-5` | `claude-sonnet-5-5` (the one recorded session; the profile has since been set to haiku) |
 | `writer` | No work on this repo yet | `claude-haiku-5-5` | none |
@@ -90,7 +90,7 @@ The model that each completed `researcher`, `architect`, `qa` and `devops` run a
 - Claude Code in omp ([omp.sh](https://omp.sh)): the Phase 1 build agent.
 - opencode: the provider that served LongCat 2.5 for the initial scaffold.
 - Anthropic API: provider for every Claude model above.
-- Git and GitHub: remote `origin` is `mikebobadilla/mlb-free-agent-tracker`; PRs #1–#3 were merged there. Agents merge their own verified branches into `main` (D-023).
+- Git and GitHub: remote `origin` is `mikebobadilla/mlb-free-agent-tracker`; PRs #1–#3, #5 and #6 were merged there. Agents merge their own verified branches into `main` (D-023).
 - Data sources the app uses: Retrosheet, the Chadwick Baseball Bureau Register, the MLB Stats API (daily signings check only) and public news reports for contract terms. See [Data sources](#data-sources).
 - Build and test tooling (Node.js, TypeScript, Prisma, Vite, React, Express, vitest) is listed in `AGENTS.md`.
 

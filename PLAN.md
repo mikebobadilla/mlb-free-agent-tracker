@@ -4,7 +4,7 @@ Last updated: 2026-11-13
 
 ## Goal
 
-An exploratory personal project: the owner builds it to learn and to do discovery work on MLB free agents. It is not for profit, has no paying customers, and has no client decisions to wait on; the owner may publish a website from it later. Success means the app is useful for following free agents and the agents' workflow is well documented (see "Agents and tools used" in [README.md](README.md)). Scope is personal, not commercial. Everything may be merged to `main`; agents merge their own finished, verified work in small commits (D-023, D-029).
+An exploratory personal project: the owner builds it to learn and to do discovery work on MLB free agents. It is not for profit, has no paying customers, and has no client decisions to wait on; the owner may publish a website from it later. Success means the app is useful for following free agents and the agents' workflow is well documented (see "Agents and tools used" in [README.md](README.md)). Scope is personal, not commercial. Everything may be merged to `main`; agents merge their own finished, verified work in small commits (D-023, D-030).
 
 Decisions behind these cards are logged in [DECISIONS.md](DECISIONS.md).
 
@@ -25,6 +25,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P3-005 | Rewrite backend and frontend in Node.js | DONE | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
 | P3-006 | Current contracts with terms | DONE | feature/curated-contracts | D-024, D-025 |
 | P3-007 | Track the 2026-27 free-agent class | DONE | feature/fa-class-2027 | D-028 |
+| W-01 | Guard against empty/mis-keyed players.yaml wiping the database | IN REVIEW | feature/yaml-data-loss-guard | D-029 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
