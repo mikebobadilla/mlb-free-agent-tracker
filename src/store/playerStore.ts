@@ -118,6 +118,11 @@ export async function refreshContractState(mlbId: number, today: Date = new Date
 
 /** Delete players (and their contracts, rumors, predictions) that are no longer in players.yaml. */
 export async function removeUntrackedPlayers(trackedMlbIds: number[]) {
+  // An empty list would make every player "untracked". Treat it as a config mistake, not an instruction (D-029).
+  if (trackedMlbIds.length === 0) {
+    console.error("removeUntrackedPlayers: refusing to delete: the tracked player list is empty. Database left untouched.");
+    return;
+  }
   const stale = await prisma.player.findMany({ where: { mlbId: { notIn: trackedMlbIds } }, select: { id: true } });
   const ids = stale.map((p) => p.id);
   if (ids.length === 0) return;
