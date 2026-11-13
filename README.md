@@ -92,7 +92,7 @@ The model that each completed `researcher`, `architect`, `qa` and `devops` run a
 - Anthropic API: provider for every Claude model above.
 - Git and GitHub: remote `origin` is `mikebobadilla/mlb-free-agent-tracker`; PRs #1–#3, #5 and #6 were merged there. Agents merge their own verified branches into `main` (D-023).
 - Vercel (Hobby plan) and Supabase (Free plan, Postgres): chosen on 2026-11-13 as the hosting for the site (D-033). Decided and planned in cards H-01 to H-08, not deployed yet; this line moves to "in use" when H-06 deploys. Vercel Hobby is non-commercial, the Supabase Free plan pauses idle projects. Planned alongside them: the Vercel CLI, Prisma Migrate and a local PostgreSQL 17 container (cards H-01, H-02, H-05 add them to this list as they land).
-- Fly.io: an uncommitted `Dockerfile` and `fly.toml` draft exists in the `.worktrees/fly-deploy` worktree; who wrote it is unknown. Superseded by Vercel + Supabase (D-033) and not used.
+- Fly.io: a `Dockerfile`, `fly.toml` and README draft by the `devops` profile sits on the unmerged branch `feature/fly-deploy` (commit a3ef91a). Superseded by Vercel + Supabase (D-033) and not used.
 - Data sources the app uses: Retrosheet, the Chadwick Baseball Bureau Register, the MLB Stats API (daily signings check only) and public news reports for contract terms. See [Data sources](#data-sources).
 - Build and test tooling (Node.js, TypeScript, Prisma, Vite, React, Express, vitest) is listed in `AGENTS.md`.
 
