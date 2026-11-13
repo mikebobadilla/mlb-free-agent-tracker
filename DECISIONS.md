@@ -293,3 +293,17 @@ it belongs here.
   - Fetch timeouts, an overlap guard and a sync-status record are separate cards.
 - **Alternatives:** Keep exiting and rely on a supervisor to restart (there is none, and a restart loop does not fix an upstream outage); reload players on every scheduled run (bigger change, not needed yet).
 - **Consequences:** A broken boot is now visible only in the logs until a sync-status record or `/healthz` exists (W-08a).
+
+## D-032 — Sync status is one in-memory record, shown in the API and as a banner
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** W-08a (kanban t_3ca9615d)
+- **Context:** D-029 and D-031 mean a bad config or failed sync only logs to the console while the server keeps serving old data (the consequence D-031 noted).
+- **Decision:**
+  - `src/jobs/syncStatus.ts` holds `scheduled`, `lastAttemptAt`, `lastSuccessAt`, `lastError`; `ok` is derived (scheduled and no error). It is set only from `runSyncCycle`, `startNightlySync` and `startBackgroundJobs`.
+  - It lives in memory and resets on restart; every boot runs a sync, so persisting it to the database adds nothing for a single-owner app.
+  - `GET /api/sync-status` returns it. The SPA shows a banner when `ok` is false and hides it otherwise (also when the status request itself fails).
+  - `startNightlySync` creates the timer before the first run, so `scheduled` is true while the first sync is still running.
+  - A `loadPlayers` failure counts as an attempt and sets `lastError`, so the banner shows the YAML error text.
+- **Alternatives:** Persist in a database table (migration, no benefit); a `/healthz` for external monitoring (separate card, nobody monitors yet).
+- **Consequences:** Status is per process: `npm run sync` runs in another process and does not update a running server. The error text is shown to anyone who can open the page; fine for a personal tool, but revisit before public hosting.

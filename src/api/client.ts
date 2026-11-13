@@ -1,3 +1,4 @@
+import type { SyncStatus } from "../jobs/syncStatus";
 import type { PlayerDashboard } from "../models";
 
 async function request<T>(path: string): Promise<T> {
@@ -12,4 +13,8 @@ export function fetchPlayers(): Promise<PlayerDashboard[]> {
 
 export function fetchPlayer(mlbId: number): Promise<PlayerDashboard> {
   return request(`/api/players/${mlbId}`);
+}
+
+export function fetchSyncStatus(): Promise<SyncStatus> {
+  return request("/api/sync-status");
 }
