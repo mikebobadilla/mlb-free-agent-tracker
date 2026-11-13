@@ -12,10 +12,14 @@ export async function runSyncCycle(players: PlayerConfig[], today: Date = new Da
   await runContractWatch(players, today);
 }
 
-// Sync once, then once a day. A failed scheduled run is logged and the next one
-// still happens; the initial run's error goes to the caller.
+// Sync once, then once a day. A failed run, initial or scheduled, is logged and the
+// timer keeps going, so an upstream outage at boot doesn't stop the daily sync (D-031).
 export async function startNightlySync(players: PlayerConfig[], intervalMs: number = syncIntervalMs): Promise<void> {
-  await runSyncCycle(players);
+  try {
+    await runSyncCycle(players);
+  } catch (err) {
+    console.error("Initial sync failed:", err);
+  }
   const timer = setInterval(() => {
     runSyncCycle(players).catch((err) => console.error("Sync failed:", err));
   }, intervalMs);
