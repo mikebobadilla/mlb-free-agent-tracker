@@ -24,6 +24,34 @@ npm run dev             # Vite dev server on :5173, proxies /api to :8780 (run m
 npm test                # vitest
 ```
 
+## Driving development with the Hermes dashboard
+
+Day-to-day work on this repo is run through [Hermes Agent](https://hermes-agent.nousresearch.com/docs)'s Kanban board rather than by editing code directly. You describe work as cards in the dashboard, and a team of Hermes profiles picks them up. You don't need any of this to run the app itself.
+
+**Setup (once)**
+
+- Install Hermes and create the agency profiles: `pm`, `researcher`, `architect`, `frontend`, `backend`, `qa`, `devops`, `writer` (`hermes profile list` to check).
+- This project has its own board, `mlb-free-agent-tracker` (`hermes kanban boards list`; `hermes kanban boards switch mlb-free-agent-tracker` to select it).
+- Cards run in git worktrees of this repo under `.worktrees/<task-id>`, on branch `wt/<task-id>`, so `main` stays untouched until a branch is merged.
+
+**Day to day**
+
+1. Start the dashboard: `hermes dashboard` (serves on http://127.0.0.1:9119 and opens a browser; `hermes dashboard --status` / `--stop` to check or stop it).
+2. Open the **Kanban** tab and pick the `mlb-free-agent-tracker` board in the board switcher.
+3. Create a card with a title and a short body that states what you want and how you'll know it's done. Assign it to `pm` for anything that needs planning or splitting up. Assign it straight to a specialist (for example `backend` or `writer`) for a small, well-defined change.
+4. The `pm` profile writes a plan and creates linked cards for the specialists: research, architecture, frontend and backend, QA, devops, docs. A card waits until its parent cards are done.
+5. Watch progress in the dashboard. Open a card to read its comments, worker log and handoff summary.
+6. Answer blocked cards. A worker that needs a decision only you can make blocks the card with a question. Comment your answer and unblock it.
+7. Review finished cards. Code cards come back as "review" with a summary, the branch name and the `npm test` result. Approve to complete, or request changes with a comment.
+8. Merge approved branches into `main` once `npm test` passes (see `AGENTS.md` for the git conventions).
+
+Cards are dispatched by the Kanban dispatcher, which runs inside the Hermes gateway. Without a gateway, run `hermes kanban daemon` in a terminal. Everything in the dashboard also works from the CLI: `hermes kanban list`, `hermes kanban create`, `hermes kanban show <id>` and so on.
+
+**Where things live**
+
+- Code and this README: this repo. Agent rules: `AGENTS.md`. Backlog and status board: `PLAN.md`. Decision log: `DECISIONS.md`.
+- Agency notes outside the repo: `~/dev/agency-docs/` — `discovery/summary.md` (current findings and risks), `projects/mlb-tracker/plan.md` and `status.md` (the PM's plan and running status), plus `research/`, `specs/` and `decisions/`.
+
 ## Project Structure
 
 ```
