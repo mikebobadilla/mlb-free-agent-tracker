@@ -1,0 +1,30 @@
+# Local Postgres for development and tests (card H-01, decision D-034).
+# Plain postgres:17 container. Not `supabase start`: another local project
+# (groomer-directory-site) already holds ports 54321/54322.
+#
+# Usage: npm run db:up | db:down | db:reset  (see README "Local Postgres")
+name: mlb-tracker
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:54330:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mlb_tracker
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, on first init of an empty volume: creates mlb_tracker_test.
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mlb_tracker"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 3s
+
+volumes:
+  pgdata:

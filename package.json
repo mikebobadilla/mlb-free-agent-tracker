@@ -10,7 +10,10 @@
     "start": "tsx src/server/index.ts",
     "sync": "tsx src/jobs/runSync.ts",
     "test": "vitest run",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait db"
   },
   "dependencies": {
     "@prisma/client": "^6.16.0",
