@@ -3,6 +3,7 @@ import path from "node:path";
 import { apiRouter } from "../routes/api";
 import { loadPlayers } from "../config/loadPlayers";
 import { startNightlySync } from "../jobs/syncCycle";
+import { markSyncFailure, markSyncScheduled } from "../jobs/syncStatus";
 
 const app = express();
 app.use(express.json());
@@ -31,12 +32,15 @@ export async function startBackgroundJobs(): Promise<void> {
     players = await loadPlayers();
   } catch (err) {
     console.error("Failed to load players, sync not scheduled:", err);
+    markSyncScheduled(false);
+    markSyncFailure(err);
     return;
   }
   try {
     await startNightlySync(players);
   } catch (err) {
     console.error("Failed to start nightly sync:", err);
+    markSyncFailure(err);
   }
 }
 

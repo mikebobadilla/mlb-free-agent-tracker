@@ -1,7 +1,12 @@
 import { Router } from "express";
+import { getSyncStatus } from "../jobs/syncStatus";
 import { getDashboardData } from "../store/playerStore";
 
 export const apiRouter = Router();
+
+apiRouter.get("/sync-status", (_req, res) => {
+  res.json(getSyncStatus());
+});
 
 apiRouter.get("/players", async (_req, res) => {
   try {
