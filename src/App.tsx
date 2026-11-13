@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchSyncStatus } from "./api/client";
+import type { SyncStatus } from "./jobs/syncStatus";
 import { Dashboard } from "./pages/Dashboard";
 import { PlayerDetail } from "./pages/PlayerDetail";
 
@@ -9,6 +11,7 @@ export function App() {
 
   return (
     <>
+      <SyncBanner />
       {route.name === "player" ? (
         <PlayerDetail mlbId={route.mlbId} onBack={() => setRoute({ name: "dashboard" })} />
       ) : (
@@ -16,6 +19,25 @@ export function App() {
       )}
       <Attribution />
     </>
+  );
+}
+
+// Visible only when the sync is off or its last run failed; hidden when healthy or unknown (D-032).
+export function SyncBanner() {
+  const [status, setStatus] = useState<SyncStatus | null>(null);
+
+  useEffect(() => {
+    fetchSyncStatus().then(setStatus).catch(() => setStatus(null));
+  }, []);
+
+  if (!status || status.ok) return null;
+  return (
+    <div className="sync-banner" role="alert">
+      <strong>{status.scheduled ? "The last data sync failed." : "The nightly data sync is not running."}</strong>{" "}
+      Data below may be out of date.
+      {status.lastError && <> Error: {status.lastError}</>}
+      {status.lastSuccessAt && <> Last good sync: {new Date(status.lastSuccessAt).toLocaleString()}.</>}
+    </div>
   );
 }
 
