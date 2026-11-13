@@ -25,7 +25,8 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P3-005 | Rewrite backend and frontend in Node.js | DONE | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
 | P3-006 | Current contracts with terms | DONE | feature/curated-contracts | D-024, D-025 |
 | P3-007 | Track the 2026-27 free-agent class | DONE | feature/fa-class-2027 | D-028 |
-| W-01 | Guard against empty/mis-keyed players.yaml wiping the database | IN REVIEW | feature/yaml-data-loss-guard | D-029 |
+| W-01 | Guard against empty/mis-keyed players.yaml wiping the database | DONE | feature/yaml-data-loss-guard (#6) | D-029 |
+| W-03 | Server survives a failed startup sync and always schedules the 24h sync | READY (kanban t_f18ac26f, backend) | — | D-031 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -126,6 +127,22 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
   - FanGraphs and Baseball-Reference are ruled out: their terms forbid republishing (D-024, D-026), and no openly licensed WAR exists. Options left: a manual `war` field in `players.yaml` (from which published figure?), or drop WAR.
 - **Decisions:** D-007, D-009, D-024, D-026
 - **Files:** TBD
+
+### [READY] Server survives a failed startup sync
+- **ID:** W-03 (kanban t_f18ac26f, assignee: backend)
+- **Branch / PR:** `feature/W-03-startup-resilience` / —
+- **Problem:** `startNightlySync` awaits the first sync before creating the 24h timer, and `main()` calls `process.exit(1)` on any error. If Retrosheet, Chadwick or MLB is down at boot, the server dies despite a good database and the timer never starts. (Discovery risk R2.)
+- **Impact:** A transient upstream outage at restart takes the whole dashboard down.
+- **Approach:** `startNightlySync` logs a failed initial run and always starts the timer. `main()` logs errors from `loadPlayers` / `startNightlySync` and never exits; the server keeps serving stored data. Fetch timeouts, an overlap guard and a sync-status record are out of scope (separate cards).
+- **Acceptance criteria:**
+  - [ ] `startNightlySync` resolves and logs when the first run fails
+  - [ ] The 24h timer is scheduled after a failed first run; a later run succeeds (test)
+  - [ ] A failing scheduled run does not stop later runs (test)
+  - [ ] Boot path logs `loadPlayers` / sync errors and does not call `process.exit`; the API still serves stored players
+  - [ ] Tests fail on current `main` for the first two items; `npm test` and `npx tsc --noEmit` pass
+- **Open questions:** (empty)
+- **Decisions:** D-031
+- **Files:** `src/jobs/syncCycle.ts`, `src/server/index.ts`, `src/jobs/syncCycle.test.ts`
 
 ### [DONE] Replace MLB Stats API with openly licensed data
 - **ID:** P1-007

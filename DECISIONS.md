@@ -280,3 +280,16 @@ it belongs here.
 - **Consequences:**
   - Deliberately emptying the tracked list now takes a manual database clear (delete `data/tracker.db`, then sync), not a YAML edit.
   - A bad `players.yaml` now makes `npm run sync` and server startup fail with this error. Keeping the server up in that case is W-03, not this card.
+
+## D-031 — A failed startup sync or config load never takes the server down
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** W-03 (kanban t_f18ac26f)
+- **Context:** The initial sync ran before the 24h timer was created, and `main()` exited the process on any error. An upstream outage at boot (Retrosheet, Chadwick, MLB) killed a server whose database was fine, and the daily timer never started (discovery risk R2).
+- **Decision:**
+  - The server keeps serving stored data whatever happens in sync or config loading; the sync path never calls `process.exit`.
+  - `startNightlySync` logs a failed initial run and always starts the 24h timer.
+  - If `loadPlayers` throws at boot (including the D-029 guard), the error is logged and no sync is scheduled; fixing the YAML needs a restart, as before.
+  - Fetch timeouts, an overlap guard and a sync-status record are separate cards.
+- **Alternatives:** Keep exiting and rely on a supervisor to restart (there is none, and a restart loop does not fix an upstream outage); reload players on every scheduled run (bigger change, not needed yet).
+- **Consequences:** A broken boot is now visible only in the logs until a sync-status record or `/healthz` exists (W-08a).
