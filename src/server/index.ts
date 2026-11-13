@@ -1,9 +1,7 @@
 import express from "express";
 import path from "node:path";
 import { apiRouter } from "../routes/api";
-import { loadPlayers } from "../config/loadPlayers";
 import { startNightlySync } from "../jobs/syncCycle";
-import { markSyncFailure, markSyncScheduled } from "../jobs/syncStatus";
 
 const app = express();
 app.use(express.json());
@@ -25,23 +23,10 @@ if (process.env.NODE_ENV !== "test") {
   });
 }
 
-// Sync or config problems never take the web server down; it keeps serving stored data (D-031).
+// Sync or config problems never take the web server down; it keeps serving stored data (D-031),
+// and the scheduler retries on its own, re-reading players.yaml each time (D-038).
 export async function startBackgroundJobs(): Promise<void> {
-  let players;
-  try {
-    players = await loadPlayers();
-  } catch (err) {
-    console.error("Failed to load players, sync not scheduled:", err);
-    markSyncScheduled(false);
-    markSyncFailure(err);
-    return;
-  }
-  try {
-    await startNightlySync(players);
-  } catch (err) {
-    console.error("Failed to start nightly sync:", err);
-    markSyncFailure(err);
-  }
+  await startNightlySync();
 }
 
 if (process.env.NODE_ENV !== "test") {
