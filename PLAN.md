@@ -22,6 +22,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P1-006 | Server startup wipes synced data | DONE | #1 | D-011 |
 | P1-007 | Replace MLB Stats API with openly licensed data | DONE | feature/retrosheet-stats | D-026, D-027 |
 | P3-004 | Track contract expiration dates | DONE | feature/P3-004-contract-expiry, feature/curated-contracts | D-020, D-025 |
+| P3-001 | Auto-detect signings via MLB Transactions API | DONE | feature/P3-001-contract-watcher, P3-006 | D-015, D-016, D-017, D-018, D-019 |
 | P3-005 | Rewrite backend and frontend in Node.js | DONE | feature/P3-005-node-rewrite, feature/post-rewrite-fixes | D-021, D-022 |
 | P3-006 | Current contracts with terms | DONE | feature/curated-contracts | D-024, D-025 |
 | P3-007 | Track the 2026-27 free-agent class | DONE | feature/fa-class-2027 | D-028 |
@@ -252,7 +253,7 @@ Each card's Approach and acceptance criteria are in its kanban body; the shared 
 
 ## Phase 3 — Contract Tracking
 
-### [NOT STARTED] Auto-detect signings via MLB transactions API
+### [DONE] Auto-detect signings via MLB transactions API
 - **ID:** P3-001
 - **Problem:** No way to know when a tracked player signs without manually checking
 - **Impact:** The tracker goes stale as soon as someone signs

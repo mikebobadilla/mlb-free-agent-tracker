@@ -150,6 +150,53 @@ it belongs here.
 - **Alternatives:** Store stats as plain `float64` and use `0` for "no data" — rejected by D-010.
 - **Consequences:** New stat columns must use these funcs in templates.
 
+Go-era decisions for P3-001 (signing detection), recorded from the `feature/P3-001-contract-watcher` branch. That branch's Go code was superseded by the TypeScript rewrite (D-021); the feature lives on in `src/jobs/contractWatcher.ts`.
+
+## D-015 — Poll `/transactions?type=FA` for free agent signings
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001
+- **Context:** The transactions endpoint returns ALL transactions for a player (assignments, IL stints, etc.) — 50+ results for a typical player. Need to filter for free agent signings only.
+- **Decision:** Use the `type=FA` query parameter to filter server-side. This returns only free agent signings.
+- **Alternatives:** Poll without the type filter and filter client-side — more data to transfer and parse. Poll a different endpoint — no other endpoint provides signing info.
+- **Consequences:** If the `type` parameter doesn't work as expected, we'll need to filter client-side. Will verify during implementation.
+
+## D-016 — Contract financial terms are NULL (transactions API has no dollar amounts)
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001
+- **Context:** The transactions API gives us the fact of a signing (player, team, date) but no contract value, years, or AAV.
+- **Decision:** Create contract records with team and signed_date populated; years, total_value, and aav are stored as NULL. The `contracts` table already supports nullable columns for these fields. The template hides fields that are 0 (not set).
+- **Alternatives:** Scrape contract details from a second source (Spotrac, etc.) — adds complexity and another data source. Leave contract creation for a future card — but then the tracker shows "signed" with no contract info, which is confusing.
+- **Consequences:** The player detail page will show "Signed to [team]" but no financial terms. A future card can backfill contract values from another source.
+
+## D-017 — Poll every 30 minutes
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001
+- **Context:** Signings are time-sensitive — the value of the tracker drops quickly if we don't detect them promptly.
+- **Decision:** Poll every 30 minutes. With 8 tracked players, this is 16 requests/hour — very light API usage.
+- **Alternatives:** Every 6 hours (same as stats sync) — too slow for breaking signings. Every 5 minutes — excessive for 8 players.
+- **Consequences:** Signings are detected within 30 minutes. During hot stove season, this might increase but still manageable.
+
+## D-018 — Only poll unsigned players
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001
+- **Context:** Once a player is marked signed, polling them again wastes API requests and could create duplicate contracts.
+- **Decision:** Skip players whose status is already "signed" (or anything other than "unsigned"). If a player's status is manually changed back to unsigned, polling resumes.
+- **Alternatives:** Poll all players always — wastes requests. Track last-checked transaction ID — more complex, not worth it for 8 players.
+- **Consequences:** If a player's status is reset to unsigned after being signed, polling resumes and the job will re-detect the signing (but dedup prevents duplicate contracts).
+
+## D-019 — Dedup by checking for existing contract
+- **Date:** 2026-10-13
+- **Status:** ACCEPTED
+- **Cards:** P3-001
+- **Context:** The job runs every 30 minutes. Without dedup, it would create a new contract record every run for the same signing.
+- **Decision:** Before inserting a contract, check if one already exists for the player using `GetLatestContract`. If one exists, skip. This is simpler than adding a unique constraint or tracking last-checked transaction IDs.
+- **Alternatives:** Unique constraint on contracts(player_id) — would prevent multiple contracts per player, but a player could legitimately sign multiple contracts over time. Track last-checked transaction ID — more robust but more complex.
+- **Consequences:** If a player signs, is released, and signs again, only the first contract is recorded. A future card can handle this if needed.
+
 ## D-020 — Contract expiry is a DB-only year set through the store
 - **Date:** 2026-10-13
 - **Status:** SUPERSEDED by D-025 (expiry is now derived from the current contract)
