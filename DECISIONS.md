@@ -462,3 +462,28 @@ Go-era decisions for P3-001 (signing detection), recorded from the `feature/P3-0
 - **Alternatives:** `===` on the strings (timing leak); syncing anyway when the guard's read fails (could double-run).
 - **Consequences:** Supersedes nothing. D-038's retry story for serverless still needs its own card.
 - **Addendum (file-name clash):** `src/app.ts` and the SPA's `src/App.tsx` differ only in case and extension. On a case-insensitive disk (macOS default), the extensionless `./App` import in `src/main.tsx` resolved to `app.ts`, which broke `tsc` and `vite build`. `main.tsx` now imports `./App.tsx` with the extension, and `tsconfig.json` sets `allowImportingTsExtensions` (valid with `noEmit`). The Express module keeps the name `src/app.ts` that D-036 and H-05 use. Do not add another extensionless `./App` or `./app` import under `src/`.
+
+## D-041 — Vercel config for the function and the cron: what is checked offline, what only a deploy proves
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-05 (config), H-06 (deploy and the open items below)
+- **Context:** D-036 fixed the shape. H-05 writes the config, and it can run no real Vercel build without a login.
+- **Decision:**
+  - `api/index.ts` is `import { app } from "../src/app"; export default app;`, with no other code.
+  - `vercel.json` has `$schema`, `buildCommand: npm run build`, `outputDirectory: dist`, a rewrite of `/api/(.*)` to `/api`, `functions["api/index.ts"].includeFiles = "config/**"` (no `maxDuration`, so the Hobby default of 300 s applies), and `crons` with `/api/cron/sync` on `0 12 * * *`.
+  - `tsconfig.json` includes `api` as well as `src`, so `tsc --noEmit` checks the entry.
+  - `.vercelignore` leaves out `node_modules/`, `data/`, `.worktrees/`, `.claude/`, `bin/`, `docker/`, `dist/`, `.vercel/`, `.git/`, `*.db` and the `.env` files. The source tree is about 0.2 MB, far under the 250 MB limit. `.gitignore` adds `.vercel/`.
+  - `loadPlayers` is unchanged and still reads `config/players.yaml` from `process.cwd()`. `includeFiles` puts the file in the bundle.
+- **Verified offline (2026-11-13):**
+  - `npx tsc --noEmit` passes with `api` included. `npm test` passes 91/91 (86 before, plus 5 in `src/vercelEntry.test.ts`, which imports `api/index` and checks `/api/players`, `/api/sync-status` and `/api/cron/sync` with and without the secret).
+  - The cron is `0 12 * * *`: fixed minute and hour, every other field `*`, so once a day.
+  - Every key in `vercel.json` exists in Vercel's published schema (`https://openapi.vercel.sh/vercel.json`) with a matching type. Schema validation with ajv does not work: ajv rejects the published draft-04 schema itself, so the keys were checked by script instead.
+  - The import graph of `api/index.ts`, compiled to CommonJS, loads under `node` with `DATABASE_URL` set. The default export is a function. Loading starts no timer and no listener.
+- **Not verified; H-06 must check on the deployed URL:**
+  - `npx vercel build` needs a login (`login_required`) and cannot run offline. Owner-supervised H-06 run only; no `vercel login` by agents.
+  - **Rewrite path:** `/api/(.*)` to `/api` may or may not keep the original path in `req.url` for the Express app. If `GET /api/players` returns 404 or the wrong route, change the rewrite or the routing, not the app.
+  - **cwd:** whether the function's `process.cwd()` contains `config/players.yaml`. If the first sync fails with ENOENT, make `loadPlayers` resolve from the module location and keep its tests green (D-036).
+  - **Prisma engine:** the engine must match Vercel's Linux runtime. Git-based builds run `prisma generate` on Vercel and should pick it up. A prebuilt deploy from macOS (`vercel build` or `deploy --prebuilt` run locally) would ship the Darwin engine and must not be used. Add `binaryTargets` in `schema.prisma` only if the runtime reports a missing engine.
+  - Whether nft tracing includes the Prisma engine file in the function bundle.
+- **Alternatives:** a `maxDuration` of 300 (the default already is); a cron more often than daily (rejected by Hobby, D-036); running `prisma migrate deploy` in the build (D-034 forbids it).
+- **Consequences:** `vercel.json` is the single place for cron and function settings. Changing the schedule means editing it and redeploying.
