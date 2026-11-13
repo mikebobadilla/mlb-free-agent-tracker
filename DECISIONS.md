@@ -253,3 +253,17 @@ it belongs here.
   - After the 2026-11-02 option deadline, players who opt in should be dropped and players who opt out lose their "signed" status (add `opted_out_after`).
   - Two-way players would lose one side of their stats.
   - Foster Griffin has no stats yet: he pitched in Japan in 2025, and Retrosheet's 2026 season isn't out.
+
+## D-029 — An empty or mis-keyed players.yaml is an error, never "track nobody"
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** W-01
+- **Context:** `loadPlayers` returned `[]` for an empty file, a wrong top-level key, or `players: []`. `syncCuratedContracts` then called `removeUntrackedPlayers([])`, and `notIn: []` matches every row, so the sync deleted every player plus their contracts, rumors and predictions. QA reproduced it at runtime (finding D-1).
+- **Decision:**
+  - `loadPlayers` throws when `players` is missing, null, not a list, or empty. The message names the file and the `players` key.
+  - `removeUntrackedPlayers` refuses an empty tracked list as a second guard: it logs an error and returns without touching the database.
+  - The guard is in two places because the store function is also the last line of defence for any future caller that builds the list some other way.
+- **Alternatives:** Guard only in `loadPlayers` (leaves the store function dangerous for other callers); guard only in the store (the sync would still log and carry on with stats for zero players); add an explicit "track nobody" flag (nobody has asked for it).
+- **Consequences:**
+  - Deliberately emptying the tracked list now takes a manual database clear (delete `data/tracker.db`, then sync), not a YAML edit.
+  - A bad `players.yaml` now makes `npm run sync` and server startup fail with this error. Keeping the server up in that case is W-03, not this card.
