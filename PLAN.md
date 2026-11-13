@@ -27,6 +27,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P3-007 | Track the 2026-27 free-agent class | DONE | feature/fa-class-2027 | D-028 |
 | W-01 | Guard against empty/mis-keyed players.yaml wiping the database | DONE | feature/yaml-data-loss-guard (#6) | D-029 |
 | W-03 | Server survives a failed startup sync and always schedules the 24h sync | DONE | feature/W-03-startup-resilience | D-031 |
+| W-08a | Show sync status (last run, error, scheduled or not) in the API and UI | DONE | feature/W-08a-sync-status | D-032 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -127,6 +128,20 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
   - FanGraphs and Baseball-Reference are ruled out: their terms forbid republishing (D-024, D-026), and no openly licensed WAR exists. Options left: a manual `war` field in `players.yaml` (from which published figure?), or drop WAR.
 - **Decisions:** D-007, D-009, D-024, D-026
 - **Files:** TBD
+
+### [DONE] Show sync status in the API and UI
+- **ID:** W-08a (kanban t_3ca9615d, assignee: backend)
+- **Branch / PR:** `feature/W-08a-sync-status` / —
+- **Problem:** After W-01 and W-03 a bad `players.yaml` or an upstream failure only shows in the console; the server keeps serving old data and the sync may not be scheduled.
+- **Approach:** `src/jobs/syncStatus.ts` holds the state (scheduled, last attempt, last success, last error). `runSyncCycle`, `startNightlySync` and `startBackgroundJobs` set it. `GET /api/sync-status` returns it; `SyncBanner` in `src/App.tsx` shows when `ok` is false.
+- **Acceptance criteria:**
+  - [x] State recorded in one module and set from `startBackgroundJobs` / `startNightlySync` / `runSyncCycle`
+  - [x] `GET /api/sync-status` (read-only)
+  - [x] Banner when not scheduled or last run failed, with the error text; hidden when healthy
+  - [x] Tests for loadPlayers failure, first sync failure, scheduled failure, success, plus one route test
+- **Decisions:** D-032
+- **Files:** `src/jobs/syncStatus.ts`, `src/jobs/syncCycle.ts`, `src/server/index.ts`, `src/routes/api.ts`, `src/api/client.ts`, `src/App.tsx`, `src/styles.css`, tests
+- **Notes (DONE):** `startNightlySync` now creates the timer before the first run (same behavior otherwise) so the status doesn't read "not scheduled" during a long first sync. 50 tests, `tsc` clean, `vite build` OK. Not done: `/healthz` and an overlap guard (rest of R8).
 
 ### [DONE] Server survives a failed startup sync
 - **ID:** W-03 (kanban t_f18ac26f, assignee: backend)

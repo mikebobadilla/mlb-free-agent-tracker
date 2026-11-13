@@ -159,6 +159,7 @@ Environment (`.env`):
 
 - `GET /api/players` — JSON list of all players with contract, rumors and prediction
 - `GET /api/players/{mlbId}` — one player, `404` if not tracked
+- `GET /api/sync-status` — `{ scheduled, lastAttemptAt, lastSuccessAt, lastError, ok }`; the SPA shows a banner when `ok` is false
 - Any other path serves the SPA from `dist/`
 
 ## Deployment
