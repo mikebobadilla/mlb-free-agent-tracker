@@ -253,3 +253,16 @@ it belongs here.
   - After the 2026-11-02 option deadline, players who opt in should be dropped and players who opt out lose their "signed" status (add `opted_out_after`).
   - Two-way players would lose one side of their stats.
   - Foster Griffin has no stats yet: he pitched in Japan in 2025, and Retrosheet's 2026 season isn't out.
+
+## D-029 — Personal exploratory project; README keeps an agent and tool log
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** t_0a33b0d9 (Hermes kanban)
+- **Context:** The owner asked for the project goal to be written down and for a record of every AI agent and tool used, so the work can be shown.
+- **Decision:**
+  - The project is exploratory and personal: for learning and discovery work on MLB free agents, not for profit, no customers or client decisions, possible public site later. Success = useful for following free agents and a well-documented agent workflow.
+  - Everything may be merged to `main`. Agents merge their own finished, verified work in small commits (extends D-023).
+  - README "Agents and tools used" lists each Hermes profile, its model/provider where known, and the external tools. Only facts from the board, session records and git history; unknowns are marked unknown.
+  - Any agent that adds a tool or model updates that section in the same commit.
+- **Alternatives:** Keep the log in `agency-docs` only (outside the repo, so not visible to anyone viewing the project).
+- **Consequences:** The kanban board does not store the model per run, so the table gives each profile's configured model plus other models seen in Hermes session records. It will drift unless agents follow the rule.

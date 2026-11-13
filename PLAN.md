@@ -1,6 +1,10 @@
 # MLB Free Agent Tracker — Feature Plan
 
-Last updated: 2026-10-29
+Last updated: 2026-11-13
+
+## Goal
+
+An exploratory personal project: the owner builds it to learn and to do discovery work on MLB free agents. It is not for profit, has no paying customers, and has no client decisions to wait on; the owner may publish a website from it later. Success means the app is useful for following free agents and the agents' workflow is well documented (see "Agents and tools used" in [README.md](README.md)). Scope is personal, not commercial. Everything may be merged to `main`; agents merge their own finished, verified work in small commits (D-023, D-029).
 
 Decisions behind these cards are logged in [DECISIONS.md](DECISIONS.md).
 
