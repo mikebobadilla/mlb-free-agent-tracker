@@ -73,7 +73,7 @@ All Hermes profiles run on provider `anthropic`. The model column is each profil
 
 | Profile | What it has done here | Configured model | Other models seen in session records |
 |---|---|---|---|
-| `pm` | Discovery lead and synthesis (`agency-docs/discovery/summary.md`), project plan, README sections, this goal and agent log | `claude-sonnet-5-5` | none |
+| `pm` | Discovery lead and synthesis (`agency-docs/discovery/summary.md`), project plan, README sections, this goal and agent log, the Vercel + Supabase migration plan (D-033 to D-037, cards H-01 to H-08) | `claude-sonnet-5-5` | none |
 | `researcher` | Product and competitor research; audit of `config/players.yaml` against option decisions (W-02) | `claude-haiku-5-5` | `claude-sonnet-5-5` (early attempts; the board shows them as crashed) |
 | `architect` | Codebase, architecture and data-model map | `claude-sonnet-5-5` | `claude-opus-5-5` (an early attempt; crashed) |
 | `frontend` | No work on this repo yet | `claude-sonnet-5-5` | none |
@@ -91,6 +91,8 @@ The model that each completed `researcher`, `architect`, `qa` and `devops` run a
 - opencode: the provider that served LongCat 2.5 for the initial scaffold.
 - Anthropic API: provider for every Claude model above.
 - Git and GitHub: remote `origin` is `mikebobadilla/mlb-free-agent-tracker`; PRs #1–#3, #5 and #6 were merged there. Agents merge their own verified branches into `main` (D-023).
+- Vercel (Hobby plan) and Supabase (Free plan, Postgres): chosen on 2026-11-13 as the hosting for the site (D-033). Decided and planned in cards H-01 to H-08, not deployed yet; this line moves to "in use" when H-06 deploys. Vercel Hobby is non-commercial, the Supabase Free plan pauses idle projects. Planned alongside them: the Vercel CLI, Prisma Migrate and a local PostgreSQL 17 container (cards H-01, H-02, H-05 add them to this list as they land).
+- Fly.io: a `Dockerfile`, `fly.toml` and README draft by the `devops` profile sits on the unmerged branch `feature/fly-deploy` (commit a3ef91a). Superseded by Vercel + Supabase (D-033) and not used.
 - Data sources the app uses: Retrosheet, the Chadwick Baseball Bureau Register, the MLB Stats API (daily signings check only) and public news reports for contract terms. See [Data sources](#data-sources).
 - Build and test tooling (Node.js, TypeScript, Prisma, Vite, React, Express, vitest) is listed in `AGENTS.md`.
 
