@@ -29,7 +29,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | W-03 | Server survives a failed startup sync and always schedules the 24h sync | DONE | feature/W-03-startup-resilience | D-031 |
 | W-08a | Show sync status (last run, error, scheduled or not) in the API and UI | DONE | feature/W-08a-sync-status | D-032 |
 | H-01 | Local Postgres for dev and tests (docker-compose, port 54330) | DONE | feature/H-01-local-postgres | D-034 |
-| H-02 | Switch Prisma to Postgres, first migration, tests on Postgres | READY | feature/H-02-postgres | D-034, D-035 |
+| H-02 | Switch Prisma to Postgres, first migration, tests on Postgres | DONE | feature/H-02-postgres | D-034, D-035 |
 | H-03 | Persist sync status in the database | READY | feature/H-03-sync-status-db | D-037 |
 | H-04 | Split the Express app from the server entry; `CRON_SECRET` sync route | READY | feature/H-04-app-split-cron | D-036 |
 | H-05 | Vercel config: `api/index.ts`, `vercel.json` | READY | feature/H-05-vercel-config | D-036 |

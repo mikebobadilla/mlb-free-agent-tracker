@@ -1,6 +1,6 @@
 # MLB Free Agent Tracker
 
-A TypeScript web app for tracking MLB free agents throughout the offseason: Express + Prisma (SQLite) backend, React SPA frontend.
+A TypeScript web app for tracking MLB free agents throughout the offseason: Express + Prisma (Postgres) backend, React SPA frontend.
 
 > **LLM Test Project**: This project is a test bed for AI-assisted development. It was scaffolded with the LongCat 2.5 model (model ID: `longcat-2.5-preview-free`, provider: `opencode`) and is now developed with Claude Code running in [omp](https://omp.sh) (model ID: `claude-opus-5-5`, provider: `anthropic`). The entire codebase — from initial scaffolding to templates to documentation — is being generated and iterated on by an LLM agent. This is very much an experiment in AI-assisted development, so expect rough edges, mistakes, and things that would normally be done differently in a human-led project.
 
@@ -11,14 +11,18 @@ An exploratory personal project. The owner builds it to learn and to do discover
 ## Quick Start
 
 ```bash
-npm install
-cp .env.example .env    # DATABASE_URL for the SQLite file
-npm run db:push         # create data/tracker.db from prisma/schema.prisma
+npm install             # also runs `prisma generate`
+npm run db:up           # local Postgres 17 in Docker on 127.0.0.1:54330 (needs Docker running)
+cp .env.example .env    # DATABASE_URL, DIRECT_URL, TEST_DATABASE_URL for that Postgres
+npm run db:migrate      # create the tables from prisma/migrations (or `npm run db:push` to sync schema.prisma directly, local only)
+npm run sync            # fill the database (about 25 s on an empty one)
 npm run build           # build the SPA to dist/
 make server             # API + SPA on :8780, plus background sync (rebuilds dist/ first if src/ is newer)
 ```
 
 Then open http://localhost:8780
+
+`npm test` also needs the database up (`npm run db:up`). Each test file gets its own throwaway schema (`test_<hex>`) in the `mlb_tracker_test` database and drops it afterwards, so tests never touch your dev data. After changing `prisma/schema.prisma`, add a migration (`npx prisma migrate dev --name <change>`); `npm run db:check` fails when the schema and the migrations disagree. `data/tracker.db` from the SQLite days is no longer used (D-035).
 
 Other commands:
 
@@ -91,8 +95,10 @@ The model that each completed `researcher`, `architect`, `qa` and `devops` run a
 - opencode: the provider that served LongCat 2.5 for the initial scaffold.
 - Anthropic API: provider for every Claude model above.
 - Git and GitHub: remote `origin` is `mikebobadilla/mlb-free-agent-tracker`; PRs #1–#3, #5 and #6 were merged there. Agents merge their own verified branches into `main` (D-023).
-- Vercel (Hobby plan) and Supabase (Free plan, Postgres): chosen on 2026-11-13 as the hosting for the site (D-033). Decided and planned in cards H-01 to H-08, not deployed yet; this line moves to "in use" when H-06 deploys. Vercel Hobby is non-commercial, the Supabase Free plan pauses idle projects. Planned alongside them: the Vercel CLI, Prisma Migrate and a local PostgreSQL 17 container (cards H-01, H-02, H-05 add them to this list as they land).
+- Vercel (Hobby plan) and Supabase (Free plan, Postgres): chosen on 2026-11-13 as the hosting for the site (D-033). Decided and planned in cards H-01 to H-08, not deployed yet; this line moves to "in use" when H-06 deploys. Vercel Hobby is non-commercial, the Supabase Free plan pauses idle projects. Planned alongside them: the Vercel CLI (card H-05 adds it to this list when it lands).
 - Docker (Docker Engine run by Colima on macOS): runs the local PostgreSQL 17 container for dev and tests (`docker-compose.yml`, port 54330, `npm run db:up`). Added 2026-11-13 (card H-01, D-034).
+- PostgreSQL 17 (local, in Docker): the app's database for dev and tests since card H-02 (D-034); production will be Supabase Postgres (H-06). SQLite and `data/tracker.db` are no longer used.
+- Prisma Migrate: the committed `prisma/migrations/0_init` migration (card H-02, D-034); production applies it by hand with `npm run db:migrate`, tests use `prisma db push` into throwaway schemas. Prisma ORM itself was already in use.
 - Fly.io: a `Dockerfile`, `fly.toml` and README draft by the `devops` profile sits on the unmerged branch `feature/fly-deploy` (commit a3ef91a). Superseded by Vercel + Supabase (D-033) and not used.
 - Data sources the app uses: Retrosheet, the Chadwick Baseball Bureau Register, the MLB Stats API (daily signings check only) and public news reports for contract terms. See [Data sources](#data-sources).
 - Build and test tooling (Node.js, TypeScript, Prisma, Vite, React, Express, vitest) is listed in `AGENTS.md`.
@@ -102,7 +108,9 @@ The model that each completed `researcher`, `architect`, `qa` and `devops` run a
 ```
 mlb-tracker/
 ├── config/players.yaml        # Your curated player list
-├── prisma/schema.prisma       # DB schema
+├── prisma/schema.prisma       # DB schema (Postgres)
+├── prisma/migrations/         # SQL migrations, applied with `npm run db:migrate`
+├── docker-compose.yml         # Local Postgres 17 (`npm run db:up`)
 ├── src/
 │   ├── server/index.ts        # Express app: /api + dist/, starts background jobs
 │   ├── routes/api.ts          # JSON API
@@ -114,7 +122,7 @@ mlb-tracker/
 │   ├── App.tsx, main.tsx      # React SPA
 │   ├── pages/                 # Dashboard, PlayerDetail
 │   └── api/client.ts          # SPA fetch client
-└── data/tracker.db            # SQLite database (git-ignored)
+└── data/                      # git-ignored; old SQLite file from before D-034, unused
 ```
 
 ## How It Works
@@ -155,7 +163,9 @@ Contract terms are entered by hand because no source that allows republishing pr
 
 Environment (`.env`):
 
-- `DATABASE_URL` — SQLite file, relative to `prisma/` (default `file:../data/tracker.db`)
+- `DATABASE_URL` — Postgres connection string the app uses at runtime (local: `postgresql://postgres:postgres@127.0.0.1:54330/mlb_tracker`; on Supabase, the transaction pooler with `?pgbouncer=true&connection_limit=1`)
+- `DIRECT_URL` — Postgres connection string Prisma uses for schema changes (`db:migrate`, `db:push`); the same as `DATABASE_URL` locally, a direct or session-pooler connection on Supabase
+- `TEST_DATABASE_URL` — optional, tests only; export it in your shell to override the default `mlb_tracker_test` database on the local container (vitest does not read `.env`)
 - `PORT` — HTTP port (default `8780`)
 
 ## API
