@@ -28,8 +28,16 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | W-01 | Guard against empty/mis-keyed players.yaml wiping the database | DONE | feature/yaml-data-loss-guard (#6) | D-029 |
 | W-03 | Server survives a failed startup sync and always schedules the 24h sync | DONE | feature/W-03-startup-resilience | D-031 |
 | W-08a | Show sync status (last run, error, scheduled or not) in the API and UI | DONE | feature/W-08a-sync-status | D-032 |
+| H-01 | Local Postgres for dev and tests (docker-compose, port 54330) | READY | feature/H-01-local-postgres | D-034 |
+| H-02 | Switch Prisma to Postgres, first migration, tests on Postgres | READY | feature/H-02-postgres | D-034, D-035 |
+| H-03 | Persist sync status in the database | READY | feature/H-03-sync-status-db | D-037 |
+| H-04 | Split the Express app from the server entry; `CRON_SECRET` sync route | READY | feature/H-04-app-split-cron | D-036 |
+| H-05 | Vercel config: `api/index.ts`, `vercel.json` | READY | feature/H-05-vercel-config | D-036 |
+| H-06 | Provision Supabase + Vercel, migrate, deploy, first sync (owner input) | READY | feature/H-06-deploy-fixes | D-033, D-034, D-035 |
+| H-07 | Docs: README deployment, Supabase restart step, AGENTS.md | READY | feature/H-07-hosting-docs | D-033 |
+| H-08 | QA: deployment and the daily cron run | READY | — | D-033 |
 
-All other cards (Phases 2–7) are NOT STARTED.
+All other cards (Phases 2–7) are NOT STARTED. Cards H-01 to H-08 run in order (each is the parent of the next; H-07 and H-08 run in parallel after H-06). Plan: Phase H below and `~/dev/agency-docs/projects/mlb-tracker/hosting-plan.md`.
 
 ## Status Legend
 
@@ -63,6 +71,31 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Decisions:** D-NNN, ...
 - **Files:**
 ```
+
+---
+
+## Phase H — Host on Vercel + Supabase
+
+Owner decision (D-033): Vercel Hobby for hosting and cron, Supabase Free Postgres for the database, personal and non-commercial. Plan card: kanban t_a6f82b2c. Every build card keeps `npm test` and `npx tsc --noEmit` passing and ends merged to `main` with a commit hash in its summary.
+
+**What blocks Vercel today (all verified in the repo):** SQLite provider and a `file:` test setup; no migration files (`db push` only); the nightly sync is a `setInterval` in `src/server/index.ts`; the SPA is served by `express.static` (ignored on Vercel); in-memory sync status (D-032).
+
+**Order and kanban ids**
+
+| Card | Kanban | Assignee | What it delivers | Depends on |
+|------|--------|----------|------------------|------------|
+| H-01 | t_e59f1e0e | devops | `docker-compose.yml`, `db:up` / `db:down`, port 54330, two databases | — |
+| H-02 | t_3fdd41f4 | backend | Postgres provider, `0_init` migration, per-file test schemas, `db:check` | H-01 |
+| H-03 | t_886112c5 | backend | `SyncStatus` table; status functions async (D-037) | H-02 |
+| H-04 | t_e12848cd | backend | `src/app.ts` split, `GET /api/cron/sync`, generic 500 bodies (D-036) | H-03 |
+| H-05 | t_b22746ef | devops | `api/index.ts`, `vercel.json`, `.vercelignore`, tsconfig `api` | H-04 |
+| H-06 | t_5be24e73 | devops | Supabase + Vercel provisioned, migrate, deploy, first sync (needs owner) | H-05 |
+| H-07 | t_8cda2f51 | writer | README Deployment and Supabase pause/restart, AGENTS.md | H-06 |
+| H-08 | t_66e4a789 | qa | Production check, secrets scan, next-day cron run | H-06 |
+
+**Not in this phase:** a custom domain, Vercel Pro, a CI workflow, `/healthz`, the WAR source (P1-005), rumors. Fetch timeouts on the sync are still a separate card.
+
+Each card's Approach and acceptance criteria are in its kanban body; the shared choices are D-034 to D-037. The cards' own sections are added here by the agent that builds them, in the same commit as the status change.
 
 ---
 
@@ -369,7 +402,7 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 
 ## Phase 6 — Community & Sharing
 
-### [NOT STARTED] Deploy to Fly.io / Railway
+### [NOT STARTED] Deploy to Fly.io / Railway — superseded by Phase H (Vercel + Supabase, D-033)
 - **ID:** P6-001
 - **Problem:** Only accessible via Tailscale or local network
 - **Impact:** Can't share with people outside your Tailnet
