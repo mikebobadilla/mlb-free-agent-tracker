@@ -172,7 +172,7 @@ Environment (`.env`):
 
 - `GET /api/players` — JSON list of all players with contract, rumors and prediction
 - `GET /api/players/{mlbId}` — one player, `404` if not tracked
-- `GET /api/sync-status` — `{ scheduled, lastAttemptAt, lastSuccessAt, lastError, ok }`; the SPA shows a banner when `ok` is false
+- `GET /api/sync-status` — `{ scheduled, lastAttemptAt, lastSuccessAt, lastError, ok }`, read from the `SyncStatus` row (D-037); `ok` is false when the sync is not scheduled, the last attempt failed, or the last success is missing or over 48 hours old. The SPA shows a banner when `ok` is false
 - Any other path serves the SPA from `dist/`
 
 ## Deployment

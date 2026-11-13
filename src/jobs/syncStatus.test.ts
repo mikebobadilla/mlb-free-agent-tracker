@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./statsSync", () => ({ runStatsSync: vi.fn() }));
 vi.mock("./curatedContracts", () => ({ syncCuratedContracts: vi.fn() }));
 vi.mock("./contractWatcher", () => ({ runContractWatch: vi.fn() }));
+vi.mock("../store/syncStatusStore", () => import("../test/memorySyncStatusStore"));
 vi.mock("../config/loadPlayers", () => ({ loadPlayers: vi.fn() }));
 
 import { loadPlayers } from "../config/loadPlayers";
@@ -16,10 +17,10 @@ const day = 24 * 60 * 60 * 1000;
 const load = async () => players;
 
 describe("sync status", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-13T08:00:00Z"));
-    resetSyncStatus();
+    await resetSyncStatus();
     vi.mocked(runStatsSync).mockReset();
     vi.mocked(loadPlayers).mockReset();
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -30,8 +31,8 @@ describe("sync status", () => {
     vi.restoreAllMocks();
   });
 
-  it("starts unscheduled with nothing recorded", () => {
-    expect(getSyncStatus()).toEqual({
+  it("starts unscheduled with nothing recorded", async () => {
+    expect(await getSyncStatus()).toEqual({
       scheduled: false,
       lastAttemptAt: null,
       lastSuccessAt: null,
@@ -44,7 +45,7 @@ describe("sync status", () => {
     vi.mocked(loadPlayers).mockRejectedValue(new Error("bad yaml"));
     await startBackgroundJobs();
 
-    expect(getSyncStatus()).toMatchObject({
+    expect(await getSyncStatus()).toMatchObject({
       scheduled: true,
       lastAttemptAt: "2026-11-13T08:00:00.000Z",
       lastSuccessAt: null,
@@ -57,7 +58,7 @@ describe("sync status", () => {
     vi.mocked(runStatsSync).mockRejectedValueOnce(new Error("no network"));
     await startNightlySync({ load });
 
-    expect(getSyncStatus()).toMatchObject({
+    expect(await getSyncStatus()).toMatchObject({
       scheduled: true,
       lastAttemptAt: "2026-11-13T08:00:00.000Z",
       lastSuccessAt: null,
@@ -71,7 +72,7 @@ describe("sync status", () => {
     await startNightlySync({ load });
     await vi.advanceTimersByTimeAsync(day);
 
-    expect(getSyncStatus()).toEqual({
+    expect(await getSyncStatus()).toEqual({
       scheduled: true,
       lastAttemptAt: "2026-11-14T08:00:00.000Z",
       lastSuccessAt: "2026-11-13T08:00:00.000Z",
@@ -85,7 +86,7 @@ describe("sync status", () => {
     await startNightlySync({ load });
     await vi.advanceTimersByTimeAsync(15 * 60 * 1000); // the retry
 
-    expect(getSyncStatus()).toEqual({
+    expect(await getSyncStatus()).toEqual({
       scheduled: true,
       lastAttemptAt: "2026-11-13T08:15:00.000Z",
       lastSuccessAt: "2026-11-13T08:15:00.000Z",
@@ -99,9 +100,10 @@ describe("sync status", () => {
     vi.mocked(runStatsSync).mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)));
     const started = startNightlySync({ load });
 
-    expect(getSyncStatus()).toMatchObject({ scheduled: true, lastSuccessAt: null, ok: true });
+    expect(await getSyncStatus()).toMatchObject({ scheduled: true, lastSuccessAt: null, ok: false });
     finish();
     await started;
-    expect(getSyncStatus().lastSuccessAt).not.toBeNull();
+    expect(await getSyncStatus()).toMatchObject({ scheduled: true, ok: true });
+    expect((await getSyncStatus()).lastSuccessAt).not.toBeNull();
   });
 });

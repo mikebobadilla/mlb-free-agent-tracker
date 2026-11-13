@@ -6,6 +6,7 @@ import path from "node:path";
 vi.mock("./statsSync", () => ({ runStatsSync: vi.fn() }));
 vi.mock("./curatedContracts", () => ({ syncCuratedContracts: vi.fn() }));
 vi.mock("./contractWatcher", () => ({ runContractWatch: vi.fn() }));
+vi.mock("../store/syncStatusStore", () => import("../test/memorySyncStatusStore"));
 vi.mock("../config/loadPlayers", () => ({ loadPlayers: vi.fn() }));
 
 import { runContractWatch } from "./contractWatcher";
@@ -20,13 +21,13 @@ const day = 24 * 60 * 60 * 1000;
 const min = 60 * 1000;
 
 function setup() {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.useFakeTimers();
     vi.mocked(runStatsSync).mockReset();
     vi.mocked(runContractWatch).mockReset();
     vi.mocked(loadPlayers).mockReset();
     vi.mocked(loadPlayers).mockResolvedValue(players);
-    resetSyncStatus();
+    await resetSyncStatus();
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -35,7 +36,7 @@ function setup() {
 }
 
 describe("retryDelayMs", () => {
-  it("starts at 15 min, doubles, and caps at 1 h", () => {
+  it("starts at 15 min, doubles, and caps at 1 h", async () => {
     expect([1, 2, 3, 4, 10].map(retryDelayMs)).toEqual([15 * min, 30 * min, 60 * min, 60 * min, 60 * min]);
   });
 });
@@ -64,14 +65,14 @@ describe("startNightlySync", () => {
 
     await expect(startNightlySync()).resolves.toBeUndefined();
     expect(consoleError).toHaveBeenCalledWith("Initial sync failed:", expect.any(Error));
-    expect(getSyncStatus()).toMatchObject({ scheduled: true, ok: false, lastError: "Retrosheet down" });
+    expect(await getSyncStatus()).toMatchObject({ scheduled: true, ok: false, lastError: "Retrosheet down" });
 
     await vi.advanceTimersByTimeAsync(15 * min - 1);
     expect(runStatsSync).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);
     expect(runStatsSync).toHaveBeenCalledTimes(2);
     expect(runContractWatch).toHaveBeenCalledTimes(1);
-    expect(getSyncStatus()).toMatchObject({ ok: true, lastError: null });
+    expect(await getSyncStatus()).toMatchObject({ ok: true, lastError: null });
 
     // Recovered: the next attempt is a day away, not 15 min.
     await vi.advanceTimersByTimeAsync(day - 1);
@@ -87,17 +88,17 @@ describe("startNightlySync", () => {
     await startNightlySync();
     expect(runStatsSync).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith("Initial sync failed:", expect.any(Error));
-    expect(getSyncStatus()).toMatchObject({
+    expect(await getSyncStatus()).toMatchObject({
       scheduled: true,
       ok: false,
       lastError: "config/players.yaml: expected a non-empty list",
     });
-    expect(getSyncStatus().lastAttemptAt).not.toBeNull();
+    expect((await getSyncStatus()).lastAttemptAt).not.toBeNull();
 
     await vi.advanceTimersByTimeAsync(15 * min);
     expect(runStatsSync).toHaveBeenCalledTimes(1);
-    expect(getSyncStatus()).toMatchObject({ ok: true, lastError: null });
-    expect(getSyncStatus().lastSuccessAt).not.toBeNull();
+    expect(await getSyncStatus()).toMatchObject({ ok: true, lastError: null });
+    expect((await getSyncStatus()).lastSuccessAt).not.toBeNull();
   });
 
   it("picks up a players.yaml fixed on disk, using the real loader", async () => {
@@ -109,14 +110,14 @@ describe("startNightlySync", () => {
     try {
       await startNightlySync({ load: () => realLoad(file) });
       expect(runStatsSync).not.toHaveBeenCalled();
-      expect(getSyncStatus().lastError).toContain("non-empty list");
+      expect((await getSyncStatus()).lastError).toContain("non-empty list");
 
       fs.writeFileSync(file, "players:\n  - name: Test Player\n    position: SS\n    mlb_id: 1\n");
       await vi.advanceTimersByTimeAsync(15 * min);
       // The real loader does real file I/O, which fake timers don't drive.
       await vi.waitFor(() => expect(runStatsSync).toHaveBeenCalled());
       expect(runStatsSync).toHaveBeenCalledWith([expect.objectContaining({ mlb_id: 1 })], expect.any(Date));
-      await vi.waitFor(() => expect(getSyncStatus()).toMatchObject({ ok: true, lastError: null }));
+      await vi.waitFor(async () => expect(await getSyncStatus()).toMatchObject({ ok: true, lastError: null }));
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -166,7 +167,7 @@ describe("startNightlySync", () => {
     await vi.advanceTimersByTimeAsync(15 * min); // retry fails
     await vi.advanceTimersByTimeAsync(30 * min); // retry succeeds
     expect(runStatsSync).toHaveBeenCalledTimes(4);
-    expect(getSyncStatus().ok).toBe(true);
+    expect((await getSyncStatus()).ok).toBe(true);
   });
 });
 
@@ -179,11 +180,11 @@ describe("startBackgroundJobs", () => {
     vi.mocked(loadPlayers).mockRejectedValueOnce(new Error("bad yaml"));
 
     await expect(startBackgroundJobs()).resolves.toBeUndefined();
-    expect(getSyncStatus()).toMatchObject({ scheduled: true, ok: false, lastError: "bad yaml" });
+    expect(await getSyncStatus()).toMatchObject({ scheduled: true, ok: false, lastError: "bad yaml" });
 
     await vi.advanceTimersByTimeAsync(15 * min);
     expect(runStatsSync).toHaveBeenCalledTimes(1);
-    expect(getSyncStatus().ok).toBe(true);
+    expect((await getSyncStatus()).ok).toBe(true);
     expect(exit).not.toHaveBeenCalled();
   });
 
@@ -198,6 +199,6 @@ describe("startBackgroundJobs", () => {
 
     await vi.advanceTimersByTimeAsync(15 * min);
     expect(runStatsSync).toHaveBeenCalledTimes(2);
-    expect(getSyncStatus().ok).toBe(true);
+    expect((await getSyncStatus()).ok).toBe(true);
   });
 });
