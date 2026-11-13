@@ -296,7 +296,7 @@ it belongs here.
 
 ## D-032 — Sync status is one in-memory record, shown in the API and as a banner
 - **Date:** 2026-11-13
-- **Status:** ACCEPTED
+- **Status:** ACCEPTED (where it is stored is SUPERSEDED by D-037)
 - **Cards:** W-08a (kanban t_3ca9615d)
 - **Context:** D-029 and D-031 mean a bad config or failed sync only logs to the console while the server keeps serving old data (the consequence D-031 noted).
 - **Decision:**
@@ -307,3 +307,71 @@ it belongs here.
   - A `loadPlayers` failure counts as an attempt and sets `lastError`, so the banner shows the YAML error text.
 - **Alternatives:** Persist in a database table (migration, no benefit); a `/healthz` for external monitoring (separate card, nobody monitors yet).
 - **Consequences:** Status is per process: `npm run sync` runs in another process and does not update a running server. The error text is shown to anyone who can open the page; fine for a personal tool, but revisit before public hosting.
+
+## D-033 — Host on Vercel (Hobby) with Supabase Postgres (Free)
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-01 to H-08 (kanban t_a6f82b2c is the plan)
+- **Context:** The owner chose to host the app on Vercel with Supabase Postgres, for personal, non-commercial use (D-030). The app was built as one long-running Node process: SQLite file, `setInterval` sync, `express.static` for the SPA. None of those work on Vercel functions.
+- **Decision:**
+  - Vercel Hobby for hosting and cron, Supabase Free for the database. Both free tiers are for non-commercial use: if the site is ever monetised, Vercel must move to Pro (confirm the terms before any monetisation).
+  - Supersedes P6-001 (Fly.io / Railway). An uncommitted `Dockerfile`, `fly.toml` and `.dockerignore` sit in the `.worktrees/fly-deploy` worktree (no commits, author unknown); they are not used and the owner may delete them.
+  - Limits read from the Vercel and Supabase docs on 2026-11-13: Hobby cron runs at most once a day, fires anywhere inside the scheduled hour, is best-effort, may fire twice, and is not retried; Hobby function duration is 300 s (default and maximum); an Express app deploys as one function with a 250 MB bundle limit, and `express.static` is ignored (static files come from the CDN); Supabase Free pauses projects with low activity over 7 days, and a paused project can be restored for 1 year.
+- **Alternatives:** Keep the Node process on Fly.io/Railway (the owner chose otherwise); Vercel with Neon or Vercel's own Postgres (the owner named Supabase).
+- **Consequences:** The limits above are quoted from docs, not tested; H-06 re-checks the ones the app depends on. The README gets a Supabase restart step (H-07).
+
+## D-034 — Postgres through Prisma: pooled runtime URL, direct migration URL, first migration, per-file test schemas
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-01, H-02, H-06
+- **Context:** `schema.prisma` uses `sqlite`, has no raw SQL and no SQLite-only features (checked), so the provider switch is small. There are no migration files (the project used `db push`), and `src/test/setupDb.ts` builds a `file:` SQLite URL per test file.
+- **Decision:**
+  - `provider = "postgresql"`; `url = env("DATABASE_URL")` (runtime) and `directUrl = env("DIRECT_URL")` (schema changes).
+  - On Supabase, `DATABASE_URL` is the transaction pooler (port 6543) with `?pgbouncer=true&connection_limit=1`; `DIRECT_URL` is the session pooler (port 5432, works from IPv4-only machines) or the direct connection.
+  - Production schema comes from a committed first migration, `prisma/migrations/0_init`, applied with `prisma migrate deploy` run by hand from a machine that has `DIRECT_URL`. It is not run in the Vercel build, so a preview build can never change the database.
+  - Tests keep using `prisma db push`, into a throwaway schema per test file (`?schema=test_<random>`) in the database named by `TEST_DATABASE_URL`, dropped in `afterAll`. A `db:check` script fails when `schema.prisma` and the migrations disagree.
+  - Local Postgres is a plain `postgres:17` container from `docker-compose.yml`, host port **54330**, databases `mlb_tracker` and `mlb_tracker_test`, user and password `postgres`. Not `supabase start`: another local project already holds ports 54321 and 54322, and the full stack is far more than the app needs.
+  - Env var names, fixed for every card: `DATABASE_URL`, `DIRECT_URL`, `TEST_DATABASE_URL`, `CRON_SECRET`.
+- **Alternatives:** `db push` in production (no history, silent data loss on drift); `supabase start` for tests (port clash, heavy); PGlite for tests (new dependency, differs from production Postgres); SQLite for tests and Postgres in production (tests would not exercise the production dialect).
+- **Consequences:** `npm test` now needs Docker running (`npm run db:up`). `prisma` moves to `dependencies` and `postinstall` runs `prisma generate`, because Vercel caches `node_modules`. Existing `data/tracker.db` files are ignored from here on.
+
+## D-035 — Do not migrate data/tracker.db; re-sync into Supabase
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-06
+- **Context:** `data/tracker.db` holds 34 players, 14 contracts, 0 rumors and 0 predictions.
+- **Decision:**
+  - Nothing is copied. After `migrate deploy`, one sync against Supabase fills the database. A cold sync into an empty database took 24 s locally (34 players, 33 with stats, 10 curated contracts).
+  - The 4 extra contracts in the old file are leftovers from before D-025 (`origin = transaction`, no transaction id, signing dates in 2014 to 2016); a fresh sync correctly does not create them.
+  - Every row derives from `config/players.yaml` plus the sync sources.
+- **Alternatives:** Export and import the SQLite rows (copies the stale rows, needs a one-off script).
+- **Consequences:** If rumors or predictions ever hold hand-entered data, this changes. The old SQLite file stays on the owner's disk as a backup.
+
+## D-036 — Vercel shape: SPA from the CDN, one Express function for /api, sync as a cron route
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-04, H-05, H-06
+- **Context:** `src/server/index.ts` builds the Express app, serves `dist/` with `express.static`, calls `app.listen`, and starts the `setInterval` sync. The SPA switches views with React state, not URL paths, so it only needs `/`.
+- **Decision:**
+  - Split the app in two: `src/app.ts` holds the Express app and its `/api` routes and does nothing on import (no listen, no static, no timers). `src/server/index.ts` stays the local and Node-host entry: it imports the app, adds `express.static` and the SPA fallback, listens, and starts the in-process sync, so `npm start` and the W-03 behaviour keep working.
+  - Vercel entry: `api/index.ts` default-exports the app. `vercel.json` sends `/api/*` to it, builds the SPA with `npm run build` into `dist/` (served by the CDN), includes `config/**` in the function bundle (`loadPlayers` reads `config/players.yaml` from the working directory), and defines the cron.
+  - Cron: `GET /api/cron/sync`, scheduled `0 12 * * *` (once a day; Hobby fires it any time from 12:00 to 12:59 UTC). It answers 401 unless `CRON_SECRET` is set and the request carries `Authorization: Bearer <CRON_SECRET>` (fails closed when the variable is missing). It awaits `runSyncCycle(await loadPlayers())` and returns 200 `{ ok: true, durationMs }`, or 500 `{ ok: false }` with the error recorded in sync status. No timer runs on Vercel.
+  - The sync is upserts, so a duplicate delivery is safe. An overlap guard skips a run when an attempt started under 10 minutes ago (200 `{ ok: true, skipped: true }`).
+  - No `maxDuration` override: the Hobby default and maximum is 300 s and the sync takes about 25 s.
+  - `/api` 500 responses stop returning `String(err)` (the site is now public); the error is logged instead.
+- **Alternatives:** Vercel's zero-config Express preset (`express.static` is ignored, so the SPA would have to be built into `public/`); an external scheduler calling the route (a second service); keeping `setInterval` (never fires on serverless).
+- **Consequences:** H-05 cannot fully prove the config without a Vercel login; H-06 verifies it on a real deploy. A missed or doubled cron run is possible (Hobby cron is best-effort); D-037 makes a missed run visible.
+
+## D-037 — Sync status lives in the database (supersedes where D-032 keeps it)
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-03
+- **Context:** D-032 kept sync status in memory because the server ran every sync itself. On Vercel the cron run and each `/api/sync-status` request are different function instances, so an in-memory record would always read "never ran" and the banner would never clear.
+- **Decision:**
+  - A one-row `SyncStatus` table (`id` always 1) holds `lastAttemptAt`, `lastSuccessAt`, `lastError`. The functions in `src/jobs/syncStatus.ts` become async and read and write it.
+  - `scheduled` is true when `process.env.VERCEL` is set (the cron is the schedule) or when the in-process timer has started; that part stays per process.
+  - `ok` is also false when `lastSuccessAt` is missing or more than 48 hours old, so a cron that never fires shows the banner.
+  - `lastError` is capped at 300 characters before it is stored, because the status endpoint is now public. The full error goes to the function logs.
+  - The response shape of `GET /api/sync-status` does not change, so the SPA does not change.
+- **Alternatives:** Keep it in memory (wrong on serverless); show the Vercel cron log instead (the SPA cannot see it).
+- **Consequences:** An empty database right after first deploy shows the banner until the first sync succeeds. That is accurate.
