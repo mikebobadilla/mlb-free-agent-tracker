@@ -24,14 +24,22 @@ if (process.env.NODE_ENV !== "test") {
   });
 }
 
-async function main() {
-  const players = await loadPlayers();
-  await startNightlySync(players);
+// Sync or config problems never take the web server down; it keeps serving stored data (D-031).
+export async function startBackgroundJobs(): Promise<void> {
+  let players;
+  try {
+    players = await loadPlayers();
+  } catch (err) {
+    console.error("Failed to load players, sync not scheduled:", err);
+    return;
+  }
+  try {
+    await startNightlySync(players);
+  } catch (err) {
+    console.error("Failed to start nightly sync:", err);
+  }
 }
 
 if (process.env.NODE_ENV !== "test") {
-  main().catch((err) => {
-    console.error("Failed to start:", err);
-    process.exit(1);
-  });
+  void startBackgroundJobs();
 }
