@@ -26,7 +26,7 @@ Active and upcoming work. Update this table in the same commit as any card statu
 | P3-006 | Current contracts with terms | DONE | feature/curated-contracts | D-024, D-025 |
 | P3-007 | Track the 2026-27 free-agent class | DONE | feature/fa-class-2027 | D-028 |
 | W-01 | Guard against empty/mis-keyed players.yaml wiping the database | DONE | feature/yaml-data-loss-guard (#6) | D-029 |
-| W-03 | Server survives a failed startup sync and always schedules the 24h sync | READY (kanban t_f18ac26f, backend) | — | D-031 |
+| W-03 | Server survives a failed startup sync and always schedules the 24h sync | IN PROGRESS | feature/W-03-startup-resilience | D-031 |
 
 All other cards (Phases 2–7) are NOT STARTED.
 
@@ -128,7 +128,7 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 - **Decisions:** D-007, D-009, D-024, D-026
 - **Files:** TBD
 
-### [READY] Server survives a failed startup sync
+### [IN PROGRESS] Server survives a failed startup sync
 - **ID:** W-03 (kanban t_f18ac26f, assignee: backend)
 - **Branch / PR:** `feature/W-03-startup-resilience` / —
 - **Problem:** `startNightlySync` awaits the first sync before creating the 24h timer, and `main()` calls `process.exit(1)` on any error. If Retrosheet, Chadwick or MLB is down at boot, the server dies despite a good database and the timer never starts. (Discovery risk R2.)
