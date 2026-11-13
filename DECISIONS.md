@@ -375,3 +375,17 @@ it belongs here.
   - The response shape of `GET /api/sync-status` does not change, so the SPA does not change.
 - **Alternatives:** Keep it in memory (wrong on serverless); show the Vercel cron log instead (the SPA cannot see it).
 - **Consequences:** An empty database right after first deploy shows the banner until the first sync succeeds. That is accurate.
+
+## D-038 — A failed sync or config load retries by itself; no manual trigger
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED (pending PM review; implemented on feature/sync-retry, QA finding 3 of t_9ca4f6f7, kanban t_2a921614)
+- **Cards:** t_2a921614
+- **Context:** After a bad `players.yaml` at boot or a failed upstream sync, recovery needed a restart or the next 24h tick. D-031 said a config load failure schedules nothing and "fixing the YAML needs a restart". QA confirmed that restoring the config or network on a running server recovered nothing. The app is a read-only dashboard (AGENTS.md), so a write endpoint is a poor fit.
+- **Decision:**
+  - Every attempt re-reads `config/players.yaml`, then runs the sync cycle. Boot, the 24h tick and retries all use the same path (`startNightlySync` in `src/jobs/syncCycle.ts`).
+  - After a failed attempt (config load or sync) the next attempt is in 15 min, then 30 min, then 60 min, and every 60 min after that, until one succeeds. Then the 24h cadence resumes. Worst-case time to recover once the cause is fixed: 60 min; typically 15.
+  - Attempts are chained with `setTimeout` after each run finishes, so they never overlap.
+  - A config load failure no longer sets `scheduled: false`: a retry is always pending, so `scheduled` stays `true` and the banner reads "The last data sync failed." with the YAML error. `scheduled: false` is now only the pre-boot state.
+  - No `POST /api/sync` and no new endpoint. `npm run sync` stays the manual way to force a sync from the CLI, but it runs in another process and does not update a running server's status (D-032).
+- **Alternatives:** `POST /api/sync` (breaks the read-only constraint, needs an auth story, and the app is unauthenticated); a fixed 15 min retry (up to 96 Retrosheet downloads a day during a long outage, hence the cap at 1 h); a file watcher on `players.yaml` (more moving parts, doesn't help network failures); a CLI that signals the running server (needs IPC, not worth it for one owner).
+- **Consequences:** Supersedes the "no sync is scheduled / needs a restart" part of D-031. A changed `players.yaml` is also picked up at the next daily tick without a restart (side effect of re-reading each attempt). A persistent failure (for example a player that always errors) now retries hourly forever; the status API and banner show it. If a manual trigger is wanted later, add it as a CLI command, not an HTTP route. The in-process retry applies only to the local long-running server. It does not carry over to the serverless deployment (D-036, D-037), where sync runs as a Vercel cron route and no timer survives between invocations; the H-cards need their own retry story (the cron cadence, for example a more frequent schedule plus the overlap guard).
