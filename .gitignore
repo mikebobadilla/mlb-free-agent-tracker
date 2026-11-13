@@ -6,3 +6,4 @@ data/
 .env.local
 .vite/
 *.log
+.worktrees/
