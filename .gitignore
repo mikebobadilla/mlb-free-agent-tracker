@@ -7,3 +7,5 @@ data/
 .vite/
 *.log
 .worktrees/
+.claude/
+bin/
