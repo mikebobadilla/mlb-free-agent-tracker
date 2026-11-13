@@ -485,5 +485,25 @@ Go-era decisions for P3-001 (signing detection), recorded from the `feature/P3-0
   - **cwd:** whether the function's `process.cwd()` contains `config/players.yaml`. If the first sync fails with ENOENT, make `loadPlayers` resolve from the module location and keep its tests green (D-036).
   - **Prisma engine:** the engine must match Vercel's Linux runtime. Git-based builds run `prisma generate` on Vercel and should pick it up. A prebuilt deploy from macOS (`vercel build` or `deploy --prebuilt` run locally) would ship the Darwin engine and must not be used. Add `binaryTargets` in `schema.prisma` only if the runtime reports a missing engine.
   - Whether nft tracing includes the Prisma engine file in the function bundle.
+  - **Resolved by D-042 (2026-11-13):** the build format. `api/index.ts` must compile to CommonJS; see D-042. The production URL check that follows the fix is still open until H-06 runs it.
 - **Alternatives:** a `maxDuration` of 300 (the default already is); a cron more often than daily (rejected by Hobby, D-036); running `prisma migrate deploy` in the build (D-034 forbids it).
 - **Consequences:** `vercel.json` is the single place for cron and function settings. Changing the schedule means editing it and redeploying.
+
+## D-042 — The Vercel function compiles to CommonJS through `api/tsconfig.json`
+
+- **Date:** 2026-11-13
+- **Status:** ACCEPTED
+- **Cards:** H-06 (fix), resolves the build-format item of D-041
+- **Context:** Production `/api/players` and `/api/sync-status` crashed with `SyntaxError: Cannot use import statement outside a module` (deployment dpl_F2pzDRbXcu95cJMvThSCNgcBsY6y). The deployed `/var/task/api/index.js` kept the ESM `import` of `../src/app`, and Node loaded it as CommonJS because `package.json` has no `"type"`. The root `tsconfig.json` sets `module: ESNext` and `moduleResolution: bundler`, which are right for Vite and vitest. @vercel/node reads the tsconfig nearest the entry, so the root file decided the function's module format.
+- **Decision:**
+  - `api/tsconfig.json` extends the root config and overrides `module: CommonJS`, `moduleResolution: node10`, `noEmit: false`, `allowImportingTsExtensions: false`, `lib: [ES2022]`, `types: [node]`, with `include: [index.ts]`. It is the only config @vercel/node reads for the function.
+  - `package.json` stays without `"type"`. The `src/` imports stay extensionless. The root `tsconfig.json` is unchanged.
+  - `src/vercelEntryFormat.test.ts` guards the format. It compiles `api/index.ts` with `api/tsconfig.json` through the TypeScript API, requires zero diagnostics, asserts no `import`/`export` line in any emitted file, and runs the emitted entry under plain `node` with `NODE_PATH` set to the repo's `node_modules`. It checks that the default export is a function.
+  - Plan option 1 from the H-06 card (a dedicated tsconfig) was enough. Option 2 (an esbuild CJS bundle) was not needed.
+- **Verified offline (2026-11-13):**
+  - `@vercel/node` `build()` against the worktree with `api/tsconfig.json` emits `api/index.js` with `require("../src/app")` and `exports.default`, and every `src/` file it traces is CJS. Before the change, the same build failed with `src/app.ts: Emit skipped`, because the root config has `noEmit: true`. The production log's raw `import` line is what a transpile-only pass with the root config (`module: ESNext`) would emit. That exact production path was not reproduced offline.
+  - Regression check: switching `api/tsconfig.json` back to `module: ESNext` fails all 3 new tests. With CJS, they pass.
+  - `npx tsc --noEmit` exits 0. `npm test`: 94/94 pass (91 before, plus 3 in `src/vercelEntryFormat.test.ts`). `npm run build` passes.
+- **Not verified here:** the production curl check. It runs after the deploy from the merge to `main`. The result is recorded on the H-06 card, not here.
+- **Alternatives:** an esbuild-bundled CJS entry (more build wiring, and it hides the traced files from nft); adding `"type": "module"` or rewriting the `src/` imports (both ruled out, see the H-06 card); a `vercel.json` `functions` format setting (not a documented option).
+- **Consequences:** `api/tsconfig.json` must not get `noEmit: true`. A build step that runs `tsc -p api` for type checks only must do so with `--noEmit` on the command line and never with a config that emits, so @vercel/node still gets output. Anything that adds ESM-only syntax under `api/` or the modules it imports fails the test.
