@@ -24,8 +24,13 @@ export interface PlayerConfig {
 export async function loadPlayers(configPath = "config/players.yaml"): Promise<PlayerConfig[]> {
   const raw = await fs.promises.readFile(configPath, "utf8");
   // CORE_SCHEMA keeps dates like 2024-12-11 as strings instead of Date objects.
-  const parsed = yaml.load(raw, { schema: yaml.CORE_SCHEMA }) as { players?: PlayerConfig[] } | null;
-  const players = parsed?.players ?? [];
+  const parsed = yaml.load(raw, { schema: yaml.CORE_SCHEMA }) as { players?: unknown } | null;
+  // An empty or mis-keyed file must not look like "track nobody": the sync would
+  // delete every player in the database (D-029).
+  const players = parsed?.players;
+  if (!Array.isArray(players) || players.length === 0) {
+    throw new Error(`${configPath}: expected a non-empty list under the top-level \`players\` key`);
+  }
   for (const p of players) {
     if (p.contract !== undefined) validateContract(p.name, p.contract);
   }
