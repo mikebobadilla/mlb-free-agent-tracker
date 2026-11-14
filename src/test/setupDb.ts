@@ -28,7 +28,7 @@ try {
 
 process.env.DATABASE_URL = schemaUrl;
 process.env.DIRECT_URL = schemaUrl;
-execSync("npx prisma db push --skip-generate", { env: process.env, stdio: "ignore" });
+execSync("node_modules/.bin/prisma db push --skip-generate", { env: process.env, stdio: "ignore" });
 
 afterAll(async () => {
   const admin = new PrismaClient({ datasourceUrl: baseUrl });

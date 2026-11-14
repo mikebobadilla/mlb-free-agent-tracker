@@ -22,7 +22,7 @@ make server             # API + SPA on :8780, plus background sync (rebuilds dis
 
 Then open http://localhost:8780
 
-`npm test` also needs the database up (`npm run db:up`). Each test file gets its own throwaway schema (`test_<hex>`) in the `mlb_tracker_test` database and drops it afterwards, so tests never touch your dev data. After changing `prisma/schema.prisma`, add a migration (`npx prisma migrate dev --name <change>`); `npm run db:check` fails when the schema and the migrations disagree. `data/tracker.db` from the SQLite days is no longer used (D-035).
+`npm test` also needs the database up (`npm run db:up`). Each test file gets its own throwaway schema (`test_<hex>`) in the `mlb_tracker_test` database and drops it afterwards, so tests never touch your dev data. After changing `prisma/schema.prisma`, add a migration (`./node_modules/.bin/prisma migrate dev --name <change>`); `npm run db:check` fails when the schema and the migrations disagree. `data/tracker.db` from the SQLite days is no longer used (D-035).
 
 Other commands:
 

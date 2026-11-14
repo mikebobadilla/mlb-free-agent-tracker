@@ -475,12 +475,12 @@ Go-era decisions for P3-001 (signing detection), recorded from the `feature/P3-0
   - `.vercelignore` leaves out `node_modules/`, `data/`, `.worktrees/`, `.claude/`, `bin/`, `docker/`, `dist/`, `.vercel/`, `.git/`, `*.db` and the `.env` files. The source tree is about 0.2 MB, far under the 250 MB limit. `.gitignore` adds `.vercel/`.
   - `loadPlayers` is unchanged and still reads `config/players.yaml` from `process.cwd()`. `includeFiles` puts the file in the bundle.
 - **Verified offline (2026-11-13):**
-  - `npx tsc --noEmit` passes with `api` included. `npm test` passes 91/91 (86 before, plus 5 in `src/vercelEntry.test.ts`, which imports `api/index` and checks `/api/players`, `/api/sync-status` and `/api/cron/sync` with and without the secret).
+  - `./node_modules/.bin/tsc --noEmit` passes with `api` included. `npm test` passes 91/91 (86 before, plus 5 in `src/vercelEntry.test.ts`, which imports `api/index` and checks `/api/players`, `/api/sync-status` and `/api/cron/sync` with and without the secret).
   - The cron is `0 12 * * *`: fixed minute and hour, every other field `*`, so once a day.
   - Every key in `vercel.json` exists in Vercel's published schema (`https://openapi.vercel.sh/vercel.json`) with a matching type. Schema validation with ajv does not work: ajv rejects the published draft-04 schema itself, so the keys were checked by script instead.
   - The import graph of `api/index.ts`, compiled to CommonJS, loads under `node` with `DATABASE_URL` set. The default export is a function. Loading starts no timer and no listener.
 - **Not verified; H-06 must check on the deployed URL:**
-  - `npx vercel build` needs a login (`login_required`) and cannot run offline. Owner-supervised H-06 run only; no `vercel login` by agents.
+  - `vercel build` (CLI) needs a login (`login_required`) and cannot run offline. Owner-supervised H-06 run only; no `vercel login` by agents.
   - **Rewrite path:** `/api/(.*)` to `/api` may or may not keep the original path in `req.url` for the Express app. If `GET /api/players` returns 404 or the wrong route, change the rewrite or the routing, not the app.
   - **cwd:** whether the function's `process.cwd()` contains `config/players.yaml`. If the first sync fails with ENOENT, make `loadPlayers` resolve from the module location and keep its tests green (D-036).
   - **Prisma engine:** the engine must match Vercel's Linux runtime. Git-based builds run `prisma generate` on Vercel and should pick it up. A prebuilt deploy from macOS (`vercel build` or `deploy --prebuilt` run locally) would ship the Darwin engine and must not be used. Add `binaryTargets` in `schema.prisma` only if the runtime reports a missing engine.
@@ -503,7 +503,7 @@ Go-era decisions for P3-001 (signing detection), recorded from the `feature/P3-0
 - **Verified offline (2026-11-13):**
   - `@vercel/node` `build()` against the worktree with `api/tsconfig.json` emits `api/index.js` with `require("../src/app")` and `exports.default`, and every `src/` file it traces is CJS. Before the change, the same build failed with `src/app.ts: Emit skipped`, because the root config has `noEmit: true`. The production log's raw `import` line is what a transpile-only pass with the root config (`module: ESNext`) would emit. That exact production path was not reproduced offline.
   - Regression check: switching `api/tsconfig.json` back to `module: ESNext` fails all 3 new tests. With CJS, they pass.
-  - `npx tsc --noEmit` exits 0. `npm test`: 94/94 pass (91 before, plus 3 in `src/vercelEntryFormat.test.ts`). `npm run build` passes.
+  - `./node_modules/.bin/tsc --noEmit` exits 0. `npm test`: 94/94 pass (91 before, plus 3 in `src/vercelEntryFormat.test.ts`). `npm run build` passes.
 - **Not verified here:** the production curl check. It runs after the deploy from the merge to `main`. The result is recorded on the H-06 card, not here.
 - **Alternatives:** an esbuild-bundled CJS entry (more build wiring, and it hides the traced files from nft); adding `"type": "module"` or rewriting the `src/` imports (both ruled out, see the H-06 card); a `vercel.json` `functions` format setting (not a documented option).
 - **Consequences:** `api/tsconfig.json` must not get `noEmit: true`. A build step that runs `tsc -p api` for type checks only must do so with `--noEmit` on the command line and never with a config that emits, so @vercel/node still gets output. Anything that adds ESM-only syntax under `api/` or the modules it imports fails the test.
