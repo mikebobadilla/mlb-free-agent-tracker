@@ -96,7 +96,7 @@ The model that each completed `researcher`, `architect`, `qa` and `devops` run a
 - Anthropic API: provider for every Claude model above.
 - Git and GitHub: remote `origin` is `mikebobadilla/mlb-free-agent-tracker`; PRs #1–#3, #5 and #6 were merged there. Agents merge their own verified branches into `main` (D-023).
 - Vercel (Hobby plan): hosting and daily cron for the site, chosen 2026-11-13 (D-033). Configured in `vercel.json` and `api/index.ts` (card H-05, D-036); not yet deployed (the deploy is card H-06). Vercel Hobby is non-commercial and the cron runs at most once a day.
-- Vercel CLI (`npx vercel`, v65.15.0 on the devops profile's machine): used to check the config offline; `vercel build` needs a login, so it has not been run. Status: configured, not yet deployed (H-06).
+- Vercel MCP (`mcp__vercel__*` tools): the way agents check and operate the Vercel project (project lookup, env var names, deployments, logs). Agents do not use `npx vercel`. Status: project exists and is linked; env vars are owner-set; not yet deployed (H-06).
 - Supabase (Free plan, Postgres): chosen on 2026-11-13 as the hosting database (D-033). Planned in cards H-06 to H-08, not provisioned yet; this line moves to "in use" when H-06 provisions it. The Supabase Free plan pauses idle projects.
 - Docker (Docker Engine run by Colima on macOS): runs the local PostgreSQL 17 container for dev and tests (`docker-compose.yml`, port 54330, `npm run db:up`). Added 2026-11-13 (card H-01, D-034).
 - PostgreSQL 17 (local, in Docker): the app's database for dev and tests since card H-02 (D-034); production will be Supabase Postgres (H-06). SQLite and `data/tracker.db` are no longer used.
