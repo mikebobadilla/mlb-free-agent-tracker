@@ -77,7 +77,7 @@ Cards gain the full template below when they're groomed. Ungroomed cards keep th
 
 ## Phase H — Host on Vercel + Supabase
 
-Owner decision (D-033): Vercel Hobby for hosting and cron, Supabase Free Postgres for the database, personal and non-commercial. Plan card: kanban t_a6f82b2c. Every build card keeps `npm test` and `npx tsc --noEmit` passing and ends merged to `main` with a commit hash in its summary.
+Owner decision (D-033): Vercel Hobby for hosting and cron, Supabase Free Postgres for the database, personal and non-commercial. Plan card: kanban t_a6f82b2c. Every build card keeps `npm test` and `./node_modules/.bin/tsc --noEmit` passing and ends merged to `main` with a commit hash in its summary.
 
 **What blocks Vercel today (all verified in the repo):** SQLite provider and a `file:` test setup; no migration files (`db push` only); the nightly sync is a `setInterval` in `src/server/index.ts`; the SPA is served by `express.static` (ignored on Vercel); in-memory sync status (D-032).
 
@@ -188,7 +188,7 @@ Each card's Approach and acceptance criteria are in its kanban body; the shared 
   - [x] The 24h timer is scheduled after a failed first run; a later run succeeds (test)
   - [x] A failing scheduled run does not stop later runs (test)
   - [x] Boot path logs `loadPlayers` / sync errors and does not call `process.exit`; the API still serves stored players
-  - [x] Tests fail on current `main` for the first two items; `npm test` and `npx tsc --noEmit` pass
+  - [x] Tests fail on current `main` for the first two items; `npm test` and `./node_modules/.bin/tsc --noEmit` pass
 - **Open questions:** (empty)
 - **Decisions:** D-031
 - **Files:** `src/jobs/syncCycle.ts`, `src/server/index.ts`, `src/jobs/syncCycle.test.ts`

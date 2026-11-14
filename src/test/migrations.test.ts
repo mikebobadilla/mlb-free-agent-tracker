@@ -30,7 +30,7 @@ async function columns(schema: string) {
 
 beforeAll(() => {
   // Prisma creates the schema from ?schema= if it does not exist, then applies prisma/migrations/*.
-  execSync("npx prisma migrate deploy", {
+  execSync("node_modules/.bin/prisma migrate deploy", {
     env: { ...process.env, DATABASE_URL: migratedUrl, DIRECT_URL: migratedUrl },
     stdio: "ignore",
   });
